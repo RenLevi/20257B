@@ -11,13 +11,8 @@
 source ~/.bashrc
 conda activate op
 
-echo "Starting optimization" | tee -a resLog.out
-python test_neb.py | tee -a resLog.out
-echo "Finish neb" | tee -a resLog.out
-python splitXYZ.py | tee -a resLog.out
-echo "Finding transition state..." | tee -a resLog.out
-python TSfind.py | tee -a resLog.out
+echo "Starting NEB_Sella to search TS" | tee -a resLog.out
+python neb_cal.py | tee -a resLog.out
 echo "" | tee -a resLog.out
-
 echo "Evaluation finished"
 echo "See resLog.out to check the results"

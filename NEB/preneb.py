@@ -105,7 +105,7 @@ class PREforNEB():
             ValueError
         else:pass
         print('finish reading data from folders')
-    def buildNEB(self):
+    def buildNEB(self,file_path4support):
         mainfolder = self.neb
         os.makedirs(mainfolder, exist_ok=True)  # exist_ok=True 避免目录已存在时报错
         with open(mainfolder+'foldername.txt', 'w') as file:
@@ -127,17 +127,13 @@ class PREforNEB():
                 RR = rR.readreaction(initial_mol.path,final_mol.path,reaction)
                 RR.readfile()
                 RR.save(subfolder,'POSCAR')
-                copyFiles('/work/home/ac877eihwp/renyq/sella/LUNIX_all/neb/test_neb.py',subfolder)
-                copyFiles('/work/home/ac877eihwp/renyq/sella/LUNIX_all/neb/TSfind.py',subfolder)
-                copyFiles('/work/home/ac877eihwp/renyq/sella/LUNIX_all/neb/splitXYZ.py',subfolder)
-                copyFiles('/work/home/ac877eihwp/renyq/sella/LUNIX_all/neb/jobsearchts.sh',subfolder)
-        copyFiles('/work/home/ac877eihwp/renyq/sella/LUNIX_all/neb/submission.py',mainfolder)
+                copyFiles(file_path4support,subfolder)
 
 if (__name__ == "__main__"):
     path0='/work/home/ac877eihwp/renyq/sella/'
     pre_neb =PREforNEB(pathforcal=path0)
     pre_neb.readDataPath()
-    pre_neb.buildNEB()
+    pre_neb.buildNEB(path0)
 
 
 
