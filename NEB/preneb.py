@@ -67,11 +67,9 @@ class molfile():
             self.ads = False
 class PREforNEB():
     def __init__(self,pathforcal):
-        self.mainfolder = pathforcal#/work/home/ac877eihwp/renyq/sella/
-        self.cal = pathforcal+'cal/'
-        self.output = pathforcal+'cal/output/'
-        self.val = pathforcal+'cal/val/'
-        self.neb = pathforcal+'cal/neb/'
+        self.mainfolder = pathforcal#/work/home/ac877eihwp/renyq/sella/test
+        self.output = pathforcal+'output/'
+        self.neb = pathforcal+'neb/'
         self.file = {}
     def readDataPath(self):
         val_pass_txt = self.val+'mol_to_ad/checkbondpass.txt'
@@ -130,7 +128,7 @@ class PREforNEB():
                 copyFiles(file_path4support,subfolder)
 
 if (__name__ == "__main__"):
-    path0='/work/home/ac877eihwp/renyq/sella/'
+    path0='/work/home/ac877eihwp/renyq/sella/test'
     pre_neb =PREforNEB(pathforcal=path0)
     pre_neb.readDataPath()
     pre_neb.buildNEB(path0)

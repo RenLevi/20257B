@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Project>
+  <Version>20.1</Version>
+  <Reference>{E220F868-980E-4316-8B21-F3181C979402}</Reference>
+  <DocumentManager>
+    <Document>
+      <ID>{CD617EA4-4554-480C-A00A-F34E7F3A6A61}</ID>
+      <Paths>1</Paths>
+      <URL>.\3D Mesoscale.msd</URL>
+      <Property>
+        <Name>Visible</Name>
+        <Type>11</Type>
+        <Value>-1</Value>
+      </Property>
+    </Document>
+  </DocumentManager>
+  <ViewRegistry>
+    <Frame>
+      <Active>true</Active>
+      <Left>0</Left>
+      <Top>0</Top>
+      <Width>1450</Width>
+      <Height>615</Height>
+      <Maximized>false</Maximized>
+      <Minimized>false</Minimized>
+      <View>
+        <Active>true</Active>
+        <DocumentID>{CD617EA4-4554-480C-A00A-F34E7F3A6A61}</DocumentID>
+        <Type>SVViewer3D.Viewer3DControl</Type>
+      </View>
+    </Frame>
+  </ViewRegistry>
+  <DocumentEventManager>
+  </DocumentEventManager>
+</Project>

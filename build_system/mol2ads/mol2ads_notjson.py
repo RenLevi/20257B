@@ -8,7 +8,6 @@ from ase.constraints import FixAtoms
 import copy
 import os
 import re
-import json
 def save_file(save_path,filename,model):
     if not os.path.exists(save_path):
         os.makedirs(save_path)
@@ -92,12 +91,27 @@ def check_molecule_over_surface(surface,mol,sv):
     return True
 class mol2ads:
     def __init__(self,input,output,metal):
-        self.input = input#species_name.json
+        self.input = input#species_name.txt
         self.output = output
         self.metal = metal
+    def txt_to_dict(self):
+        dictionary = {}
         with open(self.input, 'r') as file:
-            dictionary = json.load(file)
+            for line in file:
+                # 移除行首行尾的空白字符
+                line = line.strip()
+                # 忽略空行和注释行（假设注释行以'#'开头）
+                if line and not line.startswith('#'):
+                    # 分割键和值，最多分割一次
+                    parts = line.split(':', 1)
+                    if len(parts) == 2:
+                        key, value = parts
+                        dictionary[key.strip()] = value.strip()
+                    else:
+                        print(f"无法解析的行：{line}")
+                        break
         self.d =dictionary
+        return dictionary
     def creat_folder_and_file(self):
         saveFolder = f'{self.output}/species'
         self.SF = saveFolder
@@ -109,29 +123,16 @@ class mol2ads:
         adGroup_namelist = list(adGroup_dict.keys())
         adGroup_filelist = list(adGroup_dict.values())
         group_num = len(adGroup_namelist)
-        txt_name = f'{self.output}/folder_name.json'
-        with open(txt_name, 'a') as file:
+        txt_name = f'{self.output}/folder_name.txt'
+        with open(txt_name, 'w') as file:
             pass
         for i in range(group_num):
             path_of_mol = f'{smi2molPATH}/{adGroup_filelist[i]}'
             adGroup_mol = read(path_of_mol)
             adGroup_name = adGroup_namelist[i]
-            species_file_floder_name = adGroup_name
-            data = {species_file_floder_name:adGroup_name}
-            with open(txt_name, 'r') as f:
-                file = f.read()
-                if len(file)>0:
-                    ne = 'ne'
-                else:
-                    ne = 'e'
-            if ne == 'ne':
-                with open (txt_name,'r') as f:
-                    old_data = json.load(f)
-            else:
-                old_data ={}
-            old_data.update(data)
-            with open(txt_name, 'w') as f:
-                json.dump(old_data,f)
+            with open(txt_name, 'a') as file:
+                species_file_floder_name = adGroup_name
+                file.write(f'{species_file_floder_name}:{adGroup_name}\n')
             j = 1
             while j <= random_mol_num:#随机模型数量
                 sv,theta_z,varphi_y = random_place(size)

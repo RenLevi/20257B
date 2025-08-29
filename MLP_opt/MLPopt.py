@@ -8,6 +8,7 @@ import logging
 import MLP_opt.CheckNN as CheckNN
 from ase.io import read
 import numpy as np
+import json
 def get_fmax_from_traj(traj_file):
     # 读取轨迹文件的最后一个结构（单个Atoms对象）
     atoms = read(traj_file, index=-1)
@@ -108,22 +109,46 @@ class opt4ALLsystems():#顺序
                         break
         self.d =dictionary
         return dictionary
-    def start_cal(self,record):
-        with open(record, 'w') as file:
-            pass
+    def start_cal_order(self):
         fd = self.d
         floderlist = list(fd.keys())
         for name in floderlist:
             MLP4SYS = mlpopt4system(self.input,name)
             MLP4SYS.start(self.random)
-            with open(record, 'a') as file:
-                file.write(f'{name}')
-                file.write(f'cp:{MLP4SYS.cp}\nwf:{MLP4SYS.wf}\nwp:{MLP4SYS.wp}\nwb:{MLP4SYS.wb}\nwna:{MLP4SYS.wna}\nwaH:{MLP4SYS.waH}')
+class opt4ALLsystems_batch_by_batch():#并行顺序
+    def __init__(self,input,random_number):
+        self.input = input#path
+        self.random = random_number
+        self.folder = f'{input}/folder_name.json'
+        with open(self.folder,'r') as f:
+            dictionary = json.load(f)
+        self.d = dictionary
+    def start_split(self,batch):
+        fd = self.d
+        floderlist = list(fd.keys())
+        n=len(floderlist)
+        r=n%batch
+        klow=int(n/batch)
+        split = [klow+1 for _ in range(r)] + [klow for _ in range(10-r)]
+        foldersplit=[]
+        for i in split:
+            il=floderlist[0:i]
+            del floderlist[:i]
+            foldersplit.append(il)
+        self.fsp = foldersplit
+        return foldersplit
 
-                
 
 
+
+        
             
+
+        
+
+
+
+
 
 
 

@@ -1,11 +1,10 @@
-from rdkit.Chem import AllChem
+from openbabel import pybel
 import numpy as np
 from ase import Atoms
 from ase.io import write
 from rdkit import Chem
 import re
 import os
-import json
 def add_brackets_around_letters(cnmol:str):# 使用正则表达式替换不在[]中的字母字符，前后添加[]:example:[H]CO==>[H][C][O]
     result = re.sub(r'(?<!\[)([a-zA-Z])(?!\])', r'[\g<1>]', cnmol)
     return result
@@ -68,38 +67,24 @@ def find_free_radical(smiles,molecule_geo):
     else:
         free_radical_position = molecule_geo.positions[0]
     return free_radical_position    
-def SMILES2ASEatoms(smi_from_sml,optimize_geometry=True, forcefield='MMFF94'):
+def SMILES2ASEatoms(smi_from_sml):
         # 使用Openbabel创建分子对象
         smiles = enumerate_smiles(smi_from_sml[0])#!!!!
-        mol = Chem.MolFromSmiles(smiles)
-        if mol is None:
-            raise ValueError(f"无法解析SMILES字符串: {smiles}")
-        mol = Chem.AddHs(mol)
-        AllChem.EmbedMolecule(mol, randomSeed=0xf00d)
-        # 优化几何结构（如果需要）
-        if optimize_geometry:
-            if forcefield.upper() == 'MMFF94':
-                AllChem.MMFFOptimizeMolecule(mol)
-            elif forcefield.upper() == 'UFF':
-                AllChem.UFFOptimizeMolecule(mol)
-            else:
-                raise ValueError(f"不支持的力场类型: {forcefield}")
-    
-        # 提取原子符号和坐标
-        conf = mol.GetConformer()
-        symbols = [atom.GetSymbol() for atom in mol.GetAtoms()]
-        positions = np.array([list(conf.GetAtomPosition(i)) for i in range(mol.GetNumAtoms())])
-    
-        # 创建ASE Atoms对象
-        molecule_geo = Atoms(symbols=symbols, positions=positions)
-        #molecule_geo.set_cell(np.array([[6.0, 0.0, 0.0], [0.0, 6.0, 0.0], [0.0, 0.0, 6.0]]))
-        #molecule_geo.set_pbc((True, True, True))
-        # 可选：添加键信息作为自定义属性
-        bonds = []
-        for bond in mol.GetBonds():
-            bonds.append((bond.GetBeginAtomIdx(), bond.GetEndAtomIdx(), bond.GetBondTypeAsDouble()))
-        molecule_geo.info['bonds'] = bonds
-    
+        molecule = pybel.readstring("smi", smiles)
+        molecule.make3D(forcefield='mmff94', steps=100)
+        # 创建ASE的Atoms对象
+        molecule_geo = Atoms()
+        molecule_geo.set_cell(np.array([[6.0, 0.0, 0.0], [0.0, 6.0, 0.0], [0.0, 0.0, 6.0]]))
+        molecule_geo.set_pbc((True, True, True))
+        # 将Openbabel分子对象添加到ASE的Atoms对象中
+        for atom in molecule:
+            atom_type = atom.atomicnum
+            atom_position = np.array([float(i) for i in atom.coords])
+            molecule_geo.append(atom_type)
+            molecule_geo.positions[-1] = atom_position
+        # 调整分子位置,确定自由基位置
+        free_radical_position = find_free_radical(smiles,molecule_geo)
+        molecule_geo.translate(-free_radical_position)
         return molecule_geo
 class smi2mol:
     def __init__(self,input,output):
@@ -117,12 +102,12 @@ class smi2mol:
         return std_mol_list
     def creat_folder_and_file(self):
         saveFolder = f'{self.output}/species'
-        recordfile = f'{self.output}/species_name.json'
+        recordfile = f'{self.output}/species_name.txt'
         self.SF = saveFolder
         self.RF = recordfile
         if not os.path.exists(saveFolder):
             os.makedirs(saveFolder)
-        with open (recordfile,'a') as f:
+        with open (recordfile,'w') as f:
             pass
     def build_model(self):
         for smi_tp in self.sml:     
@@ -134,20 +119,7 @@ class smi2mol:
                 #save xyz file
                 file_name = f'{smi_tp[1]}.xyz'#可更改文件保存路径以及格式
                 write(os.path.join(self.SF, file_name), ase_mol)
-                data = {smi_tp[1]:file_name}
-                with open(self.RF, 'r') as f:
-                    file = f.read()
-                    if len(file)>0:
-                        ne='not_empty'
-                    else:
-                        ne='empty'
-                if ne == 'not_empty':
-                    with open(self.RF,'r') as f:
-                        old_data = json.load(f)
-                else:
-                    old_data = {}
-                old_data.update(data)
-                with open(self.RF,'w') as f:
-                    json.dump(old_data,f)
+                with open(self.RF, 'a') as file:
+                    file.write(f'{smi_tp[1]}:{file_name}\n')
 
 
