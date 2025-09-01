@@ -131,7 +131,7 @@ class mol2ads:
                 old_data ={}
             old_data.update(data)
             with open(txt_name, 'w') as f:
-                json.dump(old_data,f)
+                json.dump(old_data,f,indent=2)
             j = 1
             while j <= random_mol_num:#随机模型数量
                 sv,theta_z,varphi_y = random_place(size)

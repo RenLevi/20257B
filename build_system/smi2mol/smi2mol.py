@@ -148,6 +148,6 @@ class smi2mol:
                     old_data = {}
                 old_data.update(data)
                 with open(self.RF,'w') as f:
-                    json.dump(old_data,f)
+                    json.dump(old_data,f,indent=2)
 
 

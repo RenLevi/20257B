@@ -10,9 +10,6 @@ def check_NON_metal_atoms(atom):
         return True
     else:
         return False
-def subHH(STR):
-    result = re.sub(r'\[HH\]', '[H]', STR)
-    return result
 class N_atom:
     def __init__(self, coord, element,number,index):
         self.xyz = coord
@@ -26,10 +23,9 @@ class checkBonds():
     def __init__(self):
         self.atoms = []
         self.poscar = atom
-        self.adsorption = []
+        self.ads_metal = []
     def input(self,filename):
         self.poscar = read(filename)
-
     def AddAtoms(self):
         atoms= self.poscar
         atoms_info = []
@@ -65,13 +61,12 @@ class checkBonds():
             else:
                 if bond(main_atom.elesymbol,sub_atom.elesymbol,dis).judge_bondorder() == 1:
                     print(f'there is adsorption with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.')
-                    if check_NON_metal_atoms(main_atom) == True:
-                        self.adsorption.append(main_atom)
+                    if check_NON_metal_atoms(main_atom) == False:
+                        self.ads_metal.append(main_atom)
                     else:
-                        self.adsorption.append(sub_atom)
+                        self.ads_metal.append(sub_atom)
         else:
             pass
-
     def CheckAllBonds(self):
         atoms = self.poscar
         for i, atom_i in enumerate(atoms):
@@ -81,36 +76,23 @@ class checkBonds():
                 else:
                     pass
         print('finish checking ALL bonds')
-class BuildMol2Smiles():
-    def __init__(self,CB:checkBonds):
-        self.metal = 0
-        self.cb = CB
-        self.smiles = ''
-    def count(self):
-        CB = self.cb
-        atoms=CB.atoms 
-        dount = 0
-        for atom in atoms:
-            if check_NON_metal_atoms(atom) == False:
-                dount += 1
-        self.metal = dount
-    def build(self):
-        self.count()
-        CB = self.cb
-        atoms=CB.atoms
-        mol = Chem.RWMol()
-        for atom in atoms:
-            if check_NON_metal_atoms(atom) == True:
-                mol.AddAtom(Chem.Atom(atom.elesymbol))
-        for atom in atoms:
-            bondatoms = atom.bonddict
-            for bondatom in bondatoms:
-                if not mol.GetBondBetweenAtoms(atom.id-self.metal,bondatom.id-self.metal):#poscar顺序格式满足金属-非金属
-                    mol.AddBond(atom.id-self.metal,bondatom.id-self.metal,Chem.BondType.SINGLE)
-        smiles = Chem.MolToSmiles(mol)
-        self.smiles = subHH(smiles)
-        self.mol = mol
-        self.ads = CB.adsorption
+    def cal_vector(self):
+        a=[]
+        m=[]
+        if self.ads_metal == []:
+            print('NO ads')
+        else:
+            for Natom in self.atoms:
+                if check_NON_metal_atoms(Natom) == True:
+                    a.append(Natom)
+                else:
+                    pass
+            for i in self.ads_metal:
+                m.append(i)
+                
+
+
+
         
 
 
@@ -123,8 +105,3 @@ if (__name__ == "__main__"):
         CB.CheckAllBonds()
     else:
         pass
-    BM2S = BuildMol2Smiles(CB)
-    BM2S.build()
-    print(f'OUTPUT:{BM2S.smiles}')
-    if BM2S.ads != []:
-        print('ads')

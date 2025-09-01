@@ -1,30 +1,7 @@
 import readReaction as rR
 import os
 import shutil
-import ast
-def is_number(s):
-    """通用数值检测（允许整数、浮点数、科学计数法）"""
-    try:
-        float(s)
-        return True
-    except ValueError:
-        return False
-def txt_to_dict(filename):
-    dictionary = {}
-    with open(filename, 'r') as file:
-        for line in file:
-            # 移除行首行尾的空白字符
-            line = line.strip()
-            # 忽略空行和注释行（假设注释行以'#'开头）
-            if line and not line.startswith('#'):
-                # 分割键和值，最多分割一次
-                parts = line.split(':', 1)
-                if len(parts) == 2:
-                    key, value = parts
-                    dictionary[key.strip()] = value.strip()
-                else:
-                    print(f"无法解析的行：{line}")
-    return dictionary
+import json
 def read_file_line_by_line(file_path):#逐行读取txt文件并返回list数据
     reaction_list=[]
     with open(file_path, 'r', encoding='utf-8') as file:
@@ -50,66 +27,54 @@ def copyFiles(source_file,dest_folder):
     except Exception as e:
         print(f"发生错误: {e}")
 class molfile():
-    def __init__(self,name:str,report:str,path:str):
+    def __init__(self,checkdict,name:str):
         self.name =name
-        self.report = ast.literal_eval(report)
-        print(self.report)
-        self.notuse=bool('WRONG' in self.report)
-        if self.notuse == False:
-            if self.report[-1] == "Ads":
-                self.path = path+'struct_'+self.report[0]+'/opt.vasp'
-                self.ads = True
-            elif self.report[-1] =="NoAds":
-                self.path = path+'struct_'+self.report[0]+'/opt.vasp'
-                self.ads = False
+        self.report = checkdict[name]#[cp,wf,wb,wna,waH]
+        '''
+        name:[cp,wf,wb,wna,waH]
+        "[H]": [[1],[],[],[],[]]
+        "[H]C([H])([H])O": [[1],[],[],[],[]]
+        '''
+        [cp,wf,wb,wna,waH] = self.report
+        if cp != []:
+            self.model_list = cp
         else:
-            self.path = path+'struct_1'+'/opt.vasp'
-            self.ads = False
+            if wna != [] and wf == [] and wb == []:
+                self.model_list =  wna+waH
+            else:
+                self.model_list =[]
+                print
+
 class PREforNEB():
     def __init__(self,pathforcal):
-        self.mainfolder = pathforcal#/work/home/ac877eihwp/renyq/sella/test
-        self.output = pathforcal+'output/'
+        self.mainfolder = pathforcal#/work/home/ac877eihwp/renyq/xxx/test/
+        self.opt = pathforcal+'opt/'
         self.neb = pathforcal+'neb/'
         self.file = {}
     def readDataPath(self):
-        val_pass_txt = self.val+'mol_to_ad/checkbondpass.txt'
-        output_pass_txt = self.output+'mol_to_ad/checkbondpass.txt'
-        wrong_txt = self.val+'mol_to_ad/wrong.txt'
-        self.foldername_txt =self.output+'mol_to_ad/floder_name.txt'
-        folder_dict=txt_to_dict(self.foldername_txt)
-        output_dict_pass = txt_to_dict(output_pass_txt)
-        val_dict_pass = txt_to_dict(val_pass_txt)
-        wrongdict = txt_to_dict(wrong_txt)
+        def read_json(jsonfile):
+            with open(jsonfile,'r') as j:
+                dictionary = json.load(j)
+            return dictionary
+        opt_check_json = f'{self.opt}system/record_adscheck.json'
+        self.foldername_json =f'{self.opt}system/folder_name.json'
+        folder_dict=read_json(self.foldername_json)
+        opt_check_dict = read_json(opt_check_json)
         count_file = 0
-        for file in output_dict_pass:
-            if file == None:pass
-            else:
-                mf = molfile(file,output_dict_pass[file],self.output+'mol_to_ad/'+file+'/')
-                self.file[file] = mf
-                count_file +=1
-        for file in val_dict_pass:
-            if file == None:pass
-            else:
-                mf = molfile(file,val_dict_pass[file],self.val+'mol_to_ad/'+file+'/')
-                self.file[file] = mf
-                count_file +=1
-        for file in wrongdict:
-            if file == None:pass
-            else:
-                mf = molfile(file,wrongdict[file],self.val+'mol_to_ad/'+file+'/')
-                self.file[file] = mf
-                count_file +=1
+        for file in opt_check_dict:
+            mf = molfile(opt_check_dict,file)
+            self.file[file] = mf
+            count_file +=1
         if count_file != len(folder_dict):
             ValueError
         else:pass
-        print('finish reading data from folders')
-    def buildNEB(self,file_path4support):
+        print('finish reading data from opt')
+    def buildNEB(self,reaction_txt):
         mainfolder = self.neb
         os.makedirs(mainfolder, exist_ok=True)  # exist_ok=True 避免目录已存在时报错
-        with open(mainfolder+'foldername.txt', 'w') as file:
+        with open(mainfolder+'foldername.json', 'w') as file:
             pass
-        rtl_txt = self.mainfolder+'reactionslist.txt'
-        reaction_list = read_file_line_by_line(rtl_txt)
+        reaction_list = read_file_line_by_line(reaction_txt)
         for reaction in reaction_list:
             rlist = rR.str2list(reaction)
             initial_mol = self.file[rlist[0][0]]
@@ -125,7 +90,6 @@ class PREforNEB():
                 RR = rR.readreaction(initial_mol.path,final_mol.path,reaction)
                 RR.readfile()
                 RR.save(subfolder,'POSCAR')
-                copyFiles(file_path4support,subfolder)
 
 if (__name__ == "__main__"):
     path0='/work/home/ac877eihwp/renyq/sella/test'

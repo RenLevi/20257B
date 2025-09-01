@@ -8,6 +8,7 @@ import numpy as np
 import json
 from ase.data import covalent_radii, atomic_numbers
 from rdkit import Chem
+import re
 class bond():
     def __init__(self, ele1,ele2,dis):
         self.ele1 = ele1
@@ -154,14 +155,13 @@ class mlpopt4system():
         foldername = self.f
         nequipModel=NequIPCalculator.from_deployed_model(model_path='/work/home/ac877eihwp/renyq/sella/LUNIX_all/mlp_opt/prototypeModel.pth',device='cpu')
         w_fmax = []
-        w_pbc = []
         w_bond = []
         w_no_ads = []
         w_ads_H = []
         checkpass = []
         for i in range(1,random_number+1):
             print(f'{foldername} struct_{i} start')
-            struct=ase.io.read(f'{sys_path}/{i}/POSCAR')
+            struct=read(f'{sys_path}/{i}/POSCAR')
             struct.set_calculator(nequipModel)
             print(f' Starting optmization by NequIP model:')
             FIRE(struct).run(fmax=0.1,steps=500)
@@ -173,17 +173,34 @@ class mlpopt4system():
             else:
                 CB = checkBonds()
                 CB.poscar = struct
-                if CB.CheckPBC == True:
-                    CB.AddAtoms()
-                    CB.CheckAllBonds()
-                else:
-                    w_pbc.append(i)
+                CB.AddAtoms()
+                CB.CheckAllBonds()
                 BM2S = BuildMol2Smiles(CB)
                 BM2S.build()
                 setads = set()
                 for atom in BM2S.ads:
                     setads.add(atom.elesymbol)
-                if BM2S.smiles == foldername and BM2S.ads != [] and setads != {'H'}:
+                if BM2S.smiles == foldername:
+                    if BM2S.ads !=[]:
+                        if setads != {'H'}:
+                            checkpass.append(i)
+                            print(f'struct_{i} ckeck pass')
+                        else:
+                            if foldername == '[H]' or foldername =='[H][H]':
+                                checkpass.append(i)
+                                print(f'struct_{i} ckeck pass')
+                            else:
+                                w_ads_H.append(i)
+                                print(f'struct_{i} adsorp with H')
+                    else:
+                        w_no_ads.append(i)
+                        print(f'struct_{i} no adsorption')
+                else:
+                    print('BM2S.smiles:',BM2S.smiles)
+                    print('foldername:',foldername)
+                    w_bond.append(i)
+                    print(f'struct_{i} bond(s) broken')          
+                '''if BM2S.smiles == foldername and BM2S.ads != [] and setads != {'H'}:
                     checkpass.append(i)
                     print(f'struct_{i} ckeck pass')
                 else:
@@ -199,11 +216,10 @@ class mlpopt4system():
                         else:
                             if setads == {'H'}:
                                 w_ads_H.append(i)
-                                print(f'struct_{i} adsorp with H')
+                                print(f'struct_{i} adsorp with H')'''
             print(f'{foldername} struct_{i} complete')
         self.cp = checkpass
         self.wf = w_fmax
-        self.wp = w_pbc
         self.wb = w_bond
         self.wna = w_no_ads
         self.waH = w_ads_H
@@ -220,7 +236,19 @@ with open (record,'w') as file:
 for name in folderpath:
     MLP4SYS = mlpopt4system(path,name)
     MLP4SYS.start(random_number=rm)
-    data={name:[MLP4SYS.cp,MLP4SYS.wf,MLP4SYS.wp,MLP4SYS.wb,MLP4SYS.wna,MLP4SYS.waH]}
-    with open (record,'a') as J2:
-        json.dump(data,J2,indent=4)
+    data={name:[MLP4SYS.cp,MLP4SYS.wf,MLP4SYS.wb,MLP4SYS.wna,MLP4SYS.waH]}
+    with open(record, 'r') as f:
+        file = f.read()
+        if len(file)>0:
+            ne = 'ne'
+        else:
+            ne = 'e'
+    if ne == 'ne':
+        with open (record,'r') as f:
+            old_data = json.load(f)
+    else:
+        old_data ={}
+    old_data.update(data)
+    with open(record, 'w') as f:
+        json.dump(old_data,f,indent=2)
 '''---------------------------------------'''

@@ -61,7 +61,27 @@ class mlpopt4system():
                 setads = set()
                 for atom in BM2S.ads:
                     setads.add(atom.elesymbol)
-                if BM2S.smiles == foldername and BM2S.ads != [] and setads != {'H'}:
+                if BM2S.smiles == foldername:
+                    if BM2S.ads !=[]:
+                        if setads != {'H'}:
+                            checkpass.append(i)
+                            print(f'struct_{i} ckeck pass')
+                        else:
+                            if foldername == '[H]' or foldername =='[H][H]':
+                                checkpass.append(i)
+                                print(f'struct_{i} ckeck pass')
+                            else:
+                                w_ads_H.append(i)
+                                print(f'struct_{i} adsorp with H')
+                    else:
+                        w_no_ads.append(i)
+                        print(f'struct_{i} no adsorption')
+                else:
+                    print('BM2S.smiles:',BM2S.smiles)
+                    print('foldername:',foldername)
+                    w_bond.append(i)
+                    print(f'struct_{i} bond(s) broken')   
+                '''if BM2S.smiles == foldername and BM2S.ads != [] and setads != {'H'}:
                     checkpass.append(i)
                     print(f'struct_{i} ckeck pass')
                 else:
@@ -77,7 +97,7 @@ class mlpopt4system():
                         else:
                             if setads == {'H'}:
                                 w_ads_H.append(i)
-                                print(f'struct_{i} adsorp with H')
+                                print(f'struct_{i} adsorp with H')'''
             print(f'{foldername} struct_{i} complete')
         self.cp = checkpass
         self.wf = w_fmax
@@ -86,7 +106,7 @@ class mlpopt4system():
         self.wna = w_no_ads
         self.waH = w_ads_H
         return checkpass
-class opt4ALLsystems():#顺序
+'''class opt4ALLsystems():#顺序
     def __init__(self,input,random_number):
         self.input = input#path
         self.random = random_number
@@ -114,7 +134,7 @@ class opt4ALLsystems():#顺序
         floderlist = list(fd.keys())
         for name in floderlist:
             MLP4SYS = mlpopt4system(self.input,name)
-            MLP4SYS.start(self.random)
+            MLP4SYS.start(self.random)'''
 class opt4ALLsystems_batch_by_batch():#并行顺序
     def __init__(self,input,random_number):
         self.input = input#path
