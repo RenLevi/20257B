@@ -1,9 +1,24 @@
 from ase.io import read
-from MLP_opt.JmolNN import bond
+from ase.data import covalent_radii, atomic_numbers
 from ase import atom
-from rdkit import Chem
 import numpy as np
-import re
+import json
+class bond():
+    def __init__(self, ele1,ele2,dis):
+        self.ele1 = ele1
+        self.ele2 = ele2
+        self.length = dis
+    def judge_bondorder(self):
+        # 获取元素的原子序数
+        z_i = atomic_numbers[self.ele1]
+        z_j = atomic_numbers[self.ele2]
+        r_i = covalent_radii[z_i]
+        r_j = covalent_radii[z_j]
+        delta = 0.45
+        if self.length <= r_i+r_j+delta:
+            return 1
+        else:
+            return 0
 def check_NON_metal_atoms(atom):
     non_metal_list =[1,2,5,6,7,8,9,10,14,15,16,17,18,33,34,35,36,52,53,54,85,86,117,118]
     if atom.number in non_metal_list:
@@ -19,7 +34,7 @@ class N_atom:
         self.bonddict = {}
         self.bondtype = {}
         self.charge = 0
-class checkBonds():
+class checksame():
     def __init__(self):
         self.atoms = []
         self.poscar = atom
@@ -32,17 +47,7 @@ class checkBonds():
         for i, atom in enumerate(atoms):
             atominfo = N_atom(atom.position,atom.symbol,atom.number,i)
             atoms_info.append(atominfo)
-        self.atoms = atoms_info
-
-    def CheckPBC(self):
-        atoms = self.poscar
-        if atoms.pbc.all() == True:
-            print('PBC is open')
-            return True
-        else:
-            print('PBC is not open')
-            return False
-        
+        self.atoms = atoms_info   
     def min_dis(self,atomID1,atomID2):
         distance = self.poscar.get_distance(atomID1,atomID2, mic=True)
         return distance
@@ -53,14 +58,15 @@ class checkBonds():
         if check_NON_metal_atoms(main_atom) == True or check_NON_metal_atoms(sub_atom) == True:
             if check_NON_metal_atoms(main_atom) == True and check_NON_metal_atoms(sub_atom) == True:
                 if bond(main_atom.elesymbol,sub_atom.elesymbol,dis).judge_bondorder() == 1:
-                    print(f'there is a bond with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.')
+                    #print(f'there is a bond with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.')
                     main_atom.bonddict[sub_atom] = sub_atom.number
                     sub_atom.bonddict[main_atom] = main_atom.number
                 else:
-                    print(f"there isn't a bond with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.")    
+                    #print(f"there isn't a bond with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.")    
+                    pass
             else:
                 if bond(main_atom.elesymbol,sub_atom.elesymbol,dis).judge_bondorder() == 1:
-                    print(f'there is adsorption with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.')
+                    #print(f'there is adsorption with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.')
                     if check_NON_metal_atoms(main_atom) == False:
                         self.ads_metal.append(main_atom)
                     else:
@@ -75,7 +81,7 @@ class checkBonds():
                     self.CheckBondwith2Atoms(i,j)
                 else:
                     pass
-        print('finish checking ALL bonds')
+        #print('finish checking ALL bonds')
     def cal_vector(self):
         a=[]
         m=[]
@@ -84,24 +90,46 @@ class checkBonds():
         else:
             for Natom in self.atoms:
                 if check_NON_metal_atoms(Natom) == True:
-                    a.append(Natom)
+                    a.append([Natom])
                 else:
                     pass
             for i in self.ads_metal:
-                m.append(i)
-                
-
-
+                m.append([i])
+        PA = np.array(a)
+        PM = np.array(m)
+        PAIM = np.repeat(PA, len(m),axis=1).T
+        PMIA = np.repeat(PM, len(a), axis=1)
+        result = np.zeros((len(m),len(a),3))
+        for i in range(len(m)):
+            for j in range(len(a)):
+                result[i][j]=PAIM[i][j].xyz-PMIA[i][j].xyz
+        return result
+class in_out_v():
+    def __init__(self,record_json,path):#path = /work/home/ac877eihwp/renyq/20250828TT/test/
+        with open(record_json,'r') as f:
+            dictionary = json.load(f)
+        self.d = dictionary
+        self.p = path
+    def cal_all(self):
+        dict4cal = self.d
+        for name in dict4cal:
+            cpl = dict4cal[name][0]
+            if cpl == []:
+                print('NO model check pass')
+            else:
+                V = []
+                for i in cpl:
+                    CB =checksame()
+                    CB.input(f'{self.p}opt/system/species/{name}/{i}/nequipOpt.traj')
+                    CB.AddAtoms()
+                    CB.CheckAllBonds()
+                    vc = CB.cal_vector()
+                    V.append(vc)
+                    print(name,i,vc.shape)
 
         
 
 
-
 if (__name__ == "__main__"):
-    CB = checkBonds()
-    CB.input('[H]C/1/nequipOpt.traj')
-    if CB.CheckPBC() == True:
-        CB.AddAtoms()
-        CB.CheckAllBonds()
-    else:
-        pass
+    iov = in_out_v('record_adscheck.json','test/')
+    iov.cal_all()
