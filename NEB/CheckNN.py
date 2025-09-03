@@ -116,15 +116,15 @@ class BuildMol2Smiles():
 
 
 if (__name__ == "__main__"):
-    test = checkBonds()
-    test.input('POSCAR')
-    if test.CheckPBC() == True:
-        test.AddAtoms()
-        test.CheckAllBonds()
+    CB = checkBonds()
+    CB.input('[H]C/1/nequipOpt.traj')
+    if CB.CheckPBC() == True:
+        CB.AddAtoms()
+        CB.CheckAllBonds()
     else:
         pass
-    output = BuildMol2Smiles(test)
-    output.build()
-    print(f'OUTPUT:{output.smiles}')
-    if output.ads != []:
+    BM2S = BuildMol2Smiles(CB)
+    BM2S.build()
+    print(f'OUTPUT:{BM2S.smiles}')
+    if BM2S.ads != []:
         print('ads')

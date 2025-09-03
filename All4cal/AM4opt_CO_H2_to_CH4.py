@@ -45,7 +45,7 @@ for i in range(len(foldersplitlist)):
     fl = foldersplitlist[i]
     data = {
         'path':'/work/home/ac877eihwp/renyq/20250828TT/test/opt/system',
-        'record':'/work/home/ac877eihwp/renyq/20250828TT/test/opt/system/record_adscheck.json',
+        #'record':'/work/home/ac877eihwp/renyq/20250828TT/test/opt/system/record_adscheck.json',
         'folderpath':fl,
         'random_number':20
         }

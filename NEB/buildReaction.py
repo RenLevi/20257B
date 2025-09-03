@@ -311,7 +311,7 @@ class readreaction():
             write(path+'FS.vasp', self.nebFS, format='vasp', vasp5=True)  # vasp5=True添加元素名称
         else:
             print('format should be .vasp')
-        #test IS whether the bond ia breaked     
+        '''#test IS whether the bond ia breaked     
         test = checkBonds()
         test.input(path+'IS.vasp')
         if test.CheckPBC() == True:
@@ -328,7 +328,7 @@ class readreaction():
               )
             return ValueError
         if output.ads == []:
-            print('Warning:there is not adsportion in model')        
+            print('Warning:there is not adsportion in model')       ''' 
             
 
 

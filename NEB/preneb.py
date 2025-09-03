@@ -2,6 +2,7 @@ import readReaction as rR
 import os
 import shutil
 import json
+from ase.io import read
 def read_file_line_by_line(file_path):#逐行读取txt文件并返回list数据
     reaction_list=[]
     with open(file_path, 'r', encoding='utf-8') as file:
@@ -26,8 +27,40 @@ def copyFiles(source_file,dest_folder):
         print(f"无法复制文件. {e}")
     except Exception as e:
         print(f"发生错误: {e}")
+def collect_Alljson(path_d,path_test,check_json,batch):
+    jobsubopt = f'{path_test}/jobsub/opt'
+    record_all_p = f'{path_d}record_adscheck.json'
+    with open (record_all_p,'w') as j1:
+        pass
+    for i in range(batch):
+        json_i = f'{jobsubopt}/{i}/record.json'
+        with open (json_i,'r') as j2:
+            di = json.load(j2)
+        
+        with open(record_all_p, 'r') as f1:
+            file = f1.read()
+            if len(file)>0:
+                ne = 'ne'
+            else:
+                ne = 'e'
+        if ne == 'ne':
+            with open (record_all_p,'r') as f2:
+                old_data = json.load(f2)
+        else:
+            old_data ={}
+        old_data.update(di)
+        with open(record_all_p, 'w') as f3:
+            json.dump(old_data,f3,indent=2)
+    with open(record_all_p, 'r') as F:
+        d_all = json.load(F)
+    with open(check_json,'r') as J:
+        d_check = json.load(J)
+    if len(d_all) != len(d_check):
+        return ValueError('some record loss!!!')
+    else:
+        pass
 class molfile():
-    def __init__(self,checkdict,name:str):
+    def __init__(self,checkdict,name,path_test):
         self.name =name
         self.report = checkdict[name]#[cp,wf,wb,wna,waH]
         '''
@@ -36,22 +69,38 @@ class molfile():
         "[H]C([H])([H])O": [[1],[],[],[],[]]
         '''
         [cp,wf,wb,wna,waH] = self.report
+        species = f'{path_test}opt/system/species/'
         if cp != []:
-            self.model_list = cp
+            E=[]
+            for i in cp:
+                last_atoms = read(f'{species}{name}/{i}/nequipOpt.traj',index=-1)
+                final_energy = last_atoms.get_potential_energy()
+                E.append(final_energy)
+            min_E = min(E)
+            id = E.index(min_E)
+            self.model_p = f'{species}{name}/{id}/nequipOpt.traj'
         else:
-            if wna != [] and wf == [] and wb == []:
-                self.model_list =  wna+waH
+            if len(wna+waH) > len(wb):#存疑
+                E = []
+                for  i in wna:
+                    last_atoms = read(f'{species}{name}/{i}/nequipOpt.traj',index=-1)
+                    final_energy = last_atoms.get_potential_energy()
+                    E.append(final_energy)
+                min_E = min(E)
+                id = E.index(min_E)
+                self.model_p = f'{species}{name}/{id}/nequipOpt.traj'
             else:
-                self.model_list =[]
+                self.model_p = None
                 print
 
 class PREforNEB():
-    def __init__(self,pathforcal):
-        self.mainfolder = pathforcal#/work/home/ac877eihwp/renyq/xxx/test/
-        self.opt = pathforcal+'opt/'
-        self.neb = pathforcal+'neb/'
+    def __init__(self,path_test):
+        self.mainfolder = path_test#/work/home/ac877eihwp/renyq/xxx/test/
+        self.opt = path_test+'opt/'
+        self.neb = path_test+'neb/'
         self.file = {}
     def readDataPath(self):
+        print('Start reading data from opt')
         def read_json(jsonfile):
             with open(jsonfile,'r') as j:
                 dictionary = json.load(j)
@@ -68,32 +117,44 @@ class PREforNEB():
         if count_file != len(folder_dict):
             ValueError
         else:pass
-        print('finish reading data from opt')
+        print('Finish reading data from opt')
     def buildNEB(self,reaction_txt):
         mainfolder = self.neb
         os.makedirs(mainfolder, exist_ok=True)  # exist_ok=True 避免目录已存在时报错
-        with open(mainfolder+'foldername.json', 'w') as file:
+        with open(f'{mainfolder}foldername.json', 'w') as file:
             pass
         reaction_list = read_file_line_by_line(reaction_txt)
         for reaction in reaction_list:
             rlist = rR.str2list(reaction)
             initial_mol = self.file[rlist[0][0]]
             final_mol = self.file[rlist[-1][0]]
-            if initial_mol.notuse == True or final_mol.notuse== True:
+            if initial_mol.model_p == None or final_mol.model_p == None:
                 pass
             else:
-                subfolder = mainfolder + str(rlist[0][0])+'_'+str(rlist[-1][0])+'/'
-                with open(mainfolder+'foldername.txt', 'a') as file:
-                    reaction_floder_name = str(rlist[0][0])+'_'+str(rlist[-1][0])
-                    file.write(f'{reaction_floder_name}:{reaction}\n')
+                subfolder = f'{mainfolder}{rlist[0][0]}_{rlist[-1][0]}/'
+                data = {reaction:f'{rlist[0][0]}_{rlist[-1][0]}'}
+                with open(f'{mainfolder}foldername.json', 'r') as f:
+                    file = f.read()
+                    if len(file)>0:
+                        ne = 'ne'
+                    else:
+                        ne = 'e'
+                if ne == 'ne':
+                    with open (f'{mainfolder}foldername.json','r') as f:
+                        old_data = json.load(f)
+                else:
+                    old_data ={}
+                old_data.update(data)
+                with open(f'{mainfolder}foldername.json', 'w') as f:
+                    json.dump(old_data,f,indent=2)
                 os.makedirs(subfolder, exist_ok=True)
-                RR = rR.readreaction(initial_mol.path,final_mol.path,reaction)
+                RR = rR.readreaction(initial_mol.model_p,final_mol.model_p,reaction)
                 RR.readfile()
                 RR.save(subfolder,'POSCAR')
 
 if (__name__ == "__main__"):
     path0='/work/home/ac877eihwp/renyq/sella/test'
-    pre_neb =PREforNEB(pathforcal=path0)
+    pre_neb =PREforNEB(path_test=path0)
     pre_neb.readDataPath()
     pre_neb.buildNEB(path0)
 

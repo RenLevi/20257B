@@ -228,7 +228,7 @@ class mlpopt4system():
 with open('config.json','r') as j:
     data = json.load(j)
 path = data['path']
-record = data['record']
+record = 'record.json'
 folderpath=data['folderpath']
 rm = data['random_number']
 with open (record,'w') as file:
