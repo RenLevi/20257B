@@ -1,4 +1,4 @@
-import readReaction as rR
+import NEB.readReaction as rR
 import os
 import shutil
 import json
@@ -11,22 +11,6 @@ def read_file_line_by_line(file_path):#逐行读取txt文件并返回list数据
             reaction_list.append(string)
         reaction_list.pop(0)
     return reaction_list
-def copyFiles(source_file,dest_folder):
-# 源文件路径source_file = '/path/to/source/file.txt'
-# 目标文件夹路径dest_folder = '/path/to/destination/folder'
-# 确保目标文件夹存在，如果不存在则创建
-    if not os.path.exists(dest_folder):
-        os.makedirs(dest_folder)
-    # 目标文件路径
-    dest_file = os.path.join(dest_folder, os.path.basename(source_file))
-    # 复制文件
-    try:
-        shutil.copy2(source_file, dest_file)
-        print(f"文件已成功复制到 {dest_file}")
-    except IOError as e:
-        print(f"无法复制文件. {e}")
-    except Exception as e:
-        print(f"发生错误: {e}")
 def collect_Alljson(path_d,path_test,check_json,batch):
     jobsubopt = f'{path_test}/jobsub/opt'
     record_all_p = f'{path_d}record_adscheck.json'
@@ -92,7 +76,6 @@ class molfile():
             else:
                 self.model_p = None
                 print
-
 class PREforNEB():
     def __init__(self,path_test):
         self.mainfolder = path_test#/work/home/ac877eihwp/renyq/xxx/test/
@@ -111,7 +94,7 @@ class PREforNEB():
         opt_check_dict = read_json(opt_check_json)
         count_file = 0
         for file in opt_check_dict:
-            mf = molfile(opt_check_dict,file)
+            mf = molfile(opt_check_dict,file,self.mainfolder)
             self.file[file] = mf
             count_file +=1
         if count_file != len(folder_dict):
@@ -132,7 +115,7 @@ class PREforNEB():
                 pass
             else:
                 subfolder = f'{mainfolder}{rlist[0][0]}_{rlist[-1][0]}/'
-                data = {reaction:f'{rlist[0][0]}_{rlist[-1][0]}'}
+                data = {f'{rlist[0][0]}_{rlist[-1][0]}':reaction}
                 with open(f'{mainfolder}foldername.json', 'r') as f:
                     file = f.read()
                     if len(file)>0:
@@ -151,7 +134,22 @@ class PREforNEB():
                 RR = rR.readreaction(initial_mol.model_p,final_mol.model_p,reaction)
                 RR.readfile()
                 RR.save(subfolder,'POSCAR')
-
+        with open(f'{mainfolder}foldername.json', 'r') as f:
+            self.d = json.load(f)   
+    def start_split(self,batch):
+        fd = self.d
+        floderlist = list(fd.keys())
+        n=len(floderlist)
+        r=n%batch
+        klow=int(n/batch)
+        split = [klow+1 for _ in range(r)] + [klow for _ in range(10-r)]
+        foldersplit=[]
+        for i in split:
+            il=floderlist[0:i]
+            del floderlist[:i]
+            foldersplit.append(il)
+        self.fsp = foldersplit
+        return foldersplit
 if (__name__ == "__main__"):
     path0='/work/home/ac877eihwp/renyq/sella/test'
     pre_neb =PREforNEB(path_test=path0)

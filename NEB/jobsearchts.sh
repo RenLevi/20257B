@@ -12,7 +12,7 @@ source ~/.bashrc
 conda activate op
 
 echo "Starting NEB_Sella to search TS" | tee -a resLog.out
-python neb_cal.py | tee -a resLog.out
+python neb_searchTS.py | tee -a resLog.out
 echo "" | tee -a resLog.out
 echo "Evaluation finished"
 echo "See resLog.out to check the results"

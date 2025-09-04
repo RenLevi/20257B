@@ -9,6 +9,7 @@ from ase.constraints import FixAtoms
 from sella import Sella
 from nequip.ase import NequIPCalculator
 import copy
+import json
 model_path = '/work/home/ac877eihwp/renyq/LUNIX_all/mlp_opt/prototypeModel.pth'
 calc = NequIPCalculator.from_deployed_model(model_path, device='cpu')
 
@@ -49,10 +50,15 @@ def read_data(file_name):
     FIRE(Atoms).run(fmax=0.1)#
     BFGS(Atoms,maxstep=0.05).run(fmax=0.01)#
     return Atoms
-
-IS, FS = read_data('IS.vasp'), read_data('FS.vasp')
-d=[IS,FS]
-write('R7.xyz', d[:])
+'''--------------------------------'''
+with open('config.json','r') as j:
+    data = json.load(j)
+path = data['path']
+folderpath=data['folderpath']
+for name in folderpath:
+    IS, FS = read_data(f'{path}/{name}/IS.vasp'), read_data(f'{path}/{name}/FS.vasp')
+    d=[IS,FS]
+    write('R7.xyz', d[:])
 '''
 print('Start NEB')
 TS = run_neb(IS, FS, 8, 'TS')

@@ -1,6 +1,6 @@
 from rdkit import Chem
 from rdkit.Chem import rdmolops
-from CheckNN import *
+from NEB.CheckNN import *
 from ase.io import write
 import numpy as np
 import copy
@@ -42,7 +42,7 @@ def checkbond(reaction:list,bms1,bms2):
     mol1 = bms1.mol
     mol2 =bms2.mol
     reactiontype = reaction[1][0]
-    addatom = reaction[1][1]#
+    addatom = reaction[1][-3]#
     bondedatom = reaction[1][-1]
     def COMBINE(mol,add):
         # 创建分子时禁用化合价检查
