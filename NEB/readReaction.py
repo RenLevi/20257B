@@ -1,6 +1,6 @@
 from rdkit import Chem
 from rdkit.Chem import rdmolops
-from NEB.CheckNN import *
+from CheckNN import *
 from ase.io import write
 import numpy as np
 import copy
@@ -291,7 +291,6 @@ class readreaction():
             noads = True
         else:
             noads = False
-        print(self.r_str)
         notmove,move = warp(Bid_infile,Eid_infile,CB)
         notmoveGroupIdx = spilt_group(notmove,move,CB)
         moveGroupIdx = spilt_group(move,notmove,CB)
@@ -314,11 +313,8 @@ class readreaction():
         #test IS whether the bond ia breaked     
         test = checkBonds()
         test.input(path+'IS.vasp')
-        if test.CheckPBC() == True:
-            test.AddAtoms()
-            test.CheckAllBonds()
-        else:
-            print('something wrong with pbc')
+        test.AddAtoms()
+        test.CheckAllBonds()
             #return TypeError   
         output = BuildMol2Smiles(test)
         output.build()
@@ -336,9 +332,9 @@ class readreaction():
         
 if (__name__ == "__main__"):
         # 使用示例
-    file1 = "cal/output/mol_to_ad/CO/opt.vasp"
-    file2 = "cal/output/mol_to_ad/OCO/opt.vasp"
-    reaction ='CO > Add O on C > OCO'
+    file1 = "test/opt/system/species/[H]OC([H])[H]/1/nequipOpt.traj"
+    file2 = "test/opt/system/species/[H]OC([H])([H])O/1/nequipOpt.traj"
+    reaction ='[H]OC([H])[H] > Add O on C > [H]OC([H])([H])O'
     PATH =  "test/"
     RR = readreaction(file1,file2,reaction)
     RR.readfile()

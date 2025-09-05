@@ -3,6 +3,11 @@ import os
 import shutil
 import json
 from ase.io import read
+'''
+    #:注释
+    #...:用于测试，可以删除
+    #?:存疑
+'''
 def read_file_line_by_line(file_path):#逐行读取txt文件并返回list数据
     reaction_list=[]
     with open(file_path, 'r', encoding='utf-8') as file:
@@ -62,9 +67,10 @@ class molfile():
                 E.append(final_energy)
             min_E = min(E)
             id = E.index(min_E)
+            print(id)#...
             self.model_p = f'{species}{name}/{id}/nequipOpt.traj'
         else:
-            if len(wna+waH) > len(wb):#存疑
+            if len(wna+waH) > len(wb):#？存疑
                 E = []
                 for  i in wna:
                     last_atoms = read(f'{species}{name}/{i}/nequipOpt.traj',index=-1)
