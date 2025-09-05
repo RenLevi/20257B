@@ -4,7 +4,8 @@ from pymatgen.core import Structure, Lattice
 from pymatgen.analysis.local_env import CrystalNN
 import matplotlib.pyplot as plt
 import os
-
+from ase.io import read
+from pymatgen.io.ase import AseAtomsAdaptor
 def calculate_coordination_with_gcn(input_file, pltout=True, output_prefix="output"):
     """
     计算结构文件中所有原子的配位数和广义配位数 (GCN)
@@ -17,7 +18,15 @@ def calculate_coordination_with_gcn(input_file, pltout=True, output_prefix="outp
     """
     # 1. 读取结构文件
     try:
-        structure = Structure.from_file(input_file)
+        '''-------------------'''
+        # 读取单个结构
+        ase_atoms = read(input_file, index=-1)  # 读取第一帧
+
+        # 使用适配器转换
+        adaptor = AseAtomsAdaptor()
+        structure = adaptor.get_structure(ase_atoms)
+        '''-------------------'''
+        #structure = Structure.from_file(input_file)
         filename = os.path.basename(input_file)
         print(f"成功读取结构文件: {filename}")
         print(f"  晶胞参数: {structure.lattice.parameters}")
@@ -112,12 +121,17 @@ def calculate_coordination_with_gcn(input_file, pltout=True, output_prefix="outp
                     j = neighbor['site_index']
                     if np.isnan(coordination_numbers[j]) or coordination_numbers[j] == 0:
                         continue
-                        
                     gcn_sum += coordination_numbers[j]
                     valid_neighbors += 1
-                
                 if valid_neighbors > 0:
-                    gcn_values[i] = gcn_sum / max(coordination_numbers)
+                    if 'C' in first_site.species:
+                        gcn_values[i] = gcn_sum / 4
+                    elif 'O' in first_site.species:
+                        gcn_values[i] = gcn_sum / 2
+                    elif 'H' in first_site.species:
+                        gcn_values[i] = gcn_sum / 1
+                    else:
+                        gcn_values[i] = gcn_sum / 12
                 else:
                     gcn_values[i] = float('nan')
     else:
@@ -142,7 +156,14 @@ def calculate_coordination_with_gcn(input_file, pltout=True, output_prefix="outp
                 valid_neighbors += 1
             
             if valid_neighbors > 0:
-                gcn_values[i] = gcn_sum / max(coordination_numbers)
+                    if 'C' in first_site.species:
+                        gcn_values[i] = gcn_sum / 4
+                    elif 'O' in first_site.species:
+                        gcn_values[i] = gcn_sum / 2
+                    elif 'H' in first_site.species:
+                        gcn_values[i] = gcn_sum / 1
+                    else:
+                        gcn_values[i] = gcn_sum / 12
             else:
                 gcn_values[i] = float('nan')
     # 5. 分析结果
@@ -360,7 +381,7 @@ def calculate_coordination_with_gcn(input_file, pltout=True, output_prefix="outp
 if __name__ == "__main__":
     # 示例用法
     result = calculate_coordination_with_gcn(
-        input_file="struct_1\POSCAR",  # 替换为您的结构文件路径
+        input_file="opt/system/species/[H]C([H])(O)O/11/nequipOpt.traj",  # 替换为您的结构文件路径
         pltout=True,
         output_prefix="my_analysis")
     

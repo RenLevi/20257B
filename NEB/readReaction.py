@@ -54,7 +54,7 @@ def checkbond(reaction:list,bms1,bms2):
         return combined_mol
     def addATOM():
         if reactiontype == 'Add':
-            if len(addatom) > 1 and 'C'in addatom:
+            if len(addatom) > 1 and 'C' in addatom:
                 return 'C'
             elif addatom =='OH':
                 return 'O'

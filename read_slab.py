@@ -76,3 +76,5 @@ class test():
     def build_grid4surface(self):
         (a,b,c) = self.analyzeOFstruct['cell_lengths']
         (alpha, beta, gamma) = self.analyzeOFstruct['cell_angles']
+
+
