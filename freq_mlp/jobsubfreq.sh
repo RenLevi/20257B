@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J MLP_opt       # 作业名
+#SBATCH -J sequential_opt       # 作业名
 #SBATCH -p wzhcnormal           # 队列名
 #SBATCH -N 1                    # 节点数
 #SBATCH --ntasks-per-node=28    # 每节点进程数
@@ -9,7 +9,7 @@
 
 source ~/.bashrc
 conda activate op
-python mlp_calEnergy.py | tee -a resLog.out
+python freq.py | tee -a resLog.out
 echo "All jobs completed"
 
     

@@ -1,6 +1,6 @@
 from rdkit import Chem
 from rdkit.Chem import rdmolops
-from CheckNN import *
+from NEB.CheckNN import *
 from ase.io import write
 import numpy as np
 import copy

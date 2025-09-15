@@ -1,5 +1,5 @@
 from ase.io import read
-from JmolNN import bond
+from NEB.JmolNN import bond
 from ase import atom
 from rdkit import Chem
 import numpy as np

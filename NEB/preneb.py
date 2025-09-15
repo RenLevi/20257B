@@ -67,8 +67,7 @@ class molfile():
                 E.append(final_energy)
             min_E = min(E)
             id = E.index(min_E)
-            print(id)#...
-            self.model_p = f'{species}{name}/{id}/nequipOpt.traj'
+            self.model_p = f'{species}{name}/{cp[id]}/nequipOpt.traj'
         else:
             if len(wna+waH) > len(wb):#？存疑
                 E = []
@@ -78,10 +77,9 @@ class molfile():
                     E.append(final_energy)
                 min_E = min(E)
                 id = E.index(min_E)
-                self.model_p = f'{species}{name}/{id}/nequipOpt.traj'
+                self.model_p = f'{species}{name}/{wna[id]}/nequipOpt.traj'
             else:
                 self.model_p = None
-                print
 class PREforNEB():
     def __init__(self,path_test):
         self.mainfolder = path_test#/work/home/ac877eihwp/renyq/xxx/test/
