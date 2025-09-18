@@ -118,8 +118,10 @@ class PREforNEB():
             if initial_mol.model_p == None or final_mol.model_p == None:
                 pass
             else:
+                RR = rR.readreaction(initial_mol.model_p,final_mol.model_p,reaction)
+                RR.readfile()
                 subfolder = f'{mainfolder}{rlist[0][0]}_{rlist[-1][0]}/'
-                data = {f'{rlist[0][0]}_{rlist[-1][0]}':reaction}
+                data = {f'{rlist[0][0]}_{rlist[-1][0]}':[reaction,RR.group1,RR.group2,RR.check,RR.split]}#File name ：[Reaction,idx,idx,bonded smiles,broken smiles]
                 with open(f'{mainfolder}foldername.json', 'r') as f:
                     file = f.read()
                     if len(file)>0:
@@ -135,9 +137,8 @@ class PREforNEB():
                 with open(f'{mainfolder}foldername.json', 'w') as f:
                     json.dump(old_data,f,indent=2)
                 os.makedirs(subfolder, exist_ok=True)
-                RR = rR.readreaction(initial_mol.model_p,final_mol.model_p,reaction)
-                RR.readfile()
                 RR.save(subfolder,'POSCAR')
+
         with open(f'{mainfolder}foldername.json', 'r') as f:
             self.d = json.load(f)   
     def start_split(self,batch):

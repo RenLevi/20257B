@@ -381,7 +381,7 @@ def calculate_coordination_with_gcn(input_file, pltout=True, output_prefix="outp
 if __name__ == "__main__":
     # 示例用法
     result = calculate_coordination_with_gcn(
-        input_file="opt/system/species/[H]C([H])(O)O/11/nequipOpt.traj",  # 替换为您的结构文件路径
+        input_file="[H]C([H])([H])O_[H]OC([H])([H])[H]/IS.vasp",  # 替换为您的结构文件路径
         pltout=True,
         output_prefix="my_analysis")
     
