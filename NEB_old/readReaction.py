@@ -4,7 +4,7 @@ from NEB.CheckNN import *
 from ase.io import write
 import numpy as np
 import copy
-import os
+from ase.data import covalent_radii, atomic_numbers
 def are_vectors_parallel(v1, v2, tol=1e-6):
     """
     检查两向量是否方向相同（或相反）。
@@ -81,23 +81,23 @@ def checkbond(reaction:list,bms1,bms2):
             if qset == aset:
                 mol.RemoveBond(begin_atom_id, end_atom_id)
                 if subHH(Chem.MolToSmiles(mol)) == Chem.MolToSmiles(check_mol):
-                    return begin_atom.GetIdx(),end_atom.GetIdx(),Chem.MolToSmiles(cs12[0]),Chem.MolToSmiles(check_mol)
+                    return begin_atom.GetIdx(),end_atom.GetIdx(),Chem.MolToSmiles(cs12[0])
                 else:
                     pass
             else:
                 pass
-        return False, False, False, False
+        return False, False, False
     if reactiontype == 'Add':
         cs12 = (mol2,mol1)
         return warp(cs12)
     elif reactiontype == 'Remove':
         cs12 = (mol1,mol2)
         if addatom == 'O/OH':
-            o1,o2,o3,o4 = warp(cs12,add='O')
+            o1,o2,o3 = warp(cs12,add='O')
             if o1 == False and o2 == False and o3 == False:
                 return warp(cs12,add='OH')
             else:
-                return o1,o2,o3,o4
+                return o1,o2,o3
         else:
             return warp(cs12)          
 def check_molecule_over_surface(atoms):
@@ -120,7 +120,6 @@ def adjust_distance(CB,
                     move,mGidx,
                     new_distance=3,
                     delta=0,
-                    alpha=0,
                     noads=False
                     ):
     """
@@ -193,11 +192,11 @@ def adjust_distance(CB,
     v_final =copy.deepcopy(vd)
     # 移动第二个原子到新位置
     for id in mGidx:
-        atoms.positions[id] = atoms.positions[id] + v_final 
+        atoms.positions[id] = atoms.positions[id]+v_final
     for atom in atoms:
         if atom.symbol in ['C','H','O']:
             aid = atom.index
-            atoms.positions[aid] = atoms.positions[aid]+np.array([0,0,alpha+delta])
+            atoms.positions[aid] = atoms.positions[aid]+np.array([0,0,1])+delta
     if noads == False:pass
     else:
         addgroup = atoms[mGidx]
@@ -254,8 +253,6 @@ class readreaction():
         self.r = str2list(reaction)
         self.r_str = reaction
         self.noads = noads
-        self.group1 = []
-        self.group2 = []
     def readfile(self):
         def warp(id1,id2,cb):
             atoms = cb.poscar
@@ -278,15 +275,12 @@ class readreaction():
         BMS1.build()
         BMS2 = BuildMol2Smiles(CB2)
         BMS2.build()
-        begin_id,end_id,smilesFORcheck,smilesFORspilt = checkbond(self.r,BMS1,BMS2)
+        begin_id,end_id,smilesFORcheck = checkbond(self.r,BMS1,BMS2)
         Bid_infile = begin_id +BMS1.metal 
         Eid_infile = end_id +BMS1.metal
         reactiontype = self.r[1][0]
         addatom = self.r[1][1]
         bondedatom = self.r[1][-1]
-        '''
-        确保FS为成键后产物
-        '''
         if reactiontype == 'Add':
             CB = CB2
             self.nebFS = CB2.poscar
@@ -300,32 +294,23 @@ class readreaction():
         notmove,move = warp(Bid_infile,Eid_infile,CB)
         notmoveGroupIdx = spilt_group(notmove,move,CB)
         moveGroupIdx = spilt_group(move,notmove,CB)
-        self.group1 = notmoveGroupIdx#main body
-        self.group2 = moveGroupIdx#sub body
-        newmoll=[]
-        for a in [0,0.2,0.4,0.6,0.8,1.0]:
-            newmol = adjust_distance(CB,notmove,notmoveGroupIdx,move,moveGroupIdx,alpha=a,noads=noads)
-            if check_molecule_over_surface(newmol) == False:
-                    for i in range(1,20):
-                        newmol = adjust_distance(CB,notmove,notmoveGroupIdx,move,moveGroupIdx,alpha=a,delta=0.1*i,noads=noads)
-                        if check_molecule_over_surface(newmol) == True:
-                            print('higher over surface')
-                            break
-            newmoll.append(newmol)
-        self.nebIS = newmoll
+        newmol = adjust_distance(CB,notmove,notmoveGroupIdx,move,moveGroupIdx,noads=noads)
+        if check_molecule_over_surface(newmol) == False:
+                for i in range(1,20):
+                    newmol = adjust_distance(CB,notmove,notmoveGroupIdx,move,moveGroupIdx,delta=0.1*i,noads=noads)
+                    if check_molecule_over_surface(newmol) == True:
+                        print('higher over surface')
+                        break
+        self.nebIS = newmol
         self.check =smilesFORcheck 
-        self.split =smilesFORspilt
     def save(self,path,format):
         # 保存为POSCAR文件（VASP格式）
         if format=='poscar' or 'POSCAR' or 'vasp':
-            os.makedirs(f'{path}ISs', exist_ok=True)
-            for a in range(6):
-                write(f'{path}ISs/{a*2}.vasp', self.nebIS[a], format='vasp', vasp5=True)
-            #write(path+'IS.vasp', self.nebIS, format='vasp', vasp5=True)  # vasp5=True添加元素名称
+            write(path+'IS.vasp', self.nebIS, format='vasp', vasp5=True)  # vasp5=True添加元素名称
             write(path+'FS.vasp', self.nebFS, format='vasp', vasp5=True)  # vasp5=True添加元素名称
         else:
             print('format should be .vasp')
-        ''' #test IS whether the bond ia breaked     
+        #test IS whether the bond ia breaked     
         test = checkBonds()
         test.input(path+'IS.vasp')
         test.AddAtoms()
@@ -339,7 +324,7 @@ class readreaction():
               )
             return ValueError
         if output.ads == []:
-            print('Warning:there is not adsportion in model')'''        
+            print('Warning:there is not adsportion in model')        
             
 
 

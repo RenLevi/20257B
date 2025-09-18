@@ -140,10 +140,8 @@ class BuildMol2Smiles():
         self.ads = CB.adsorption
 '''------------------------------------------------------'''
 
-model_path = '/work/home/ac877eihwp/renyq/LUNIX_all/mlp_opt/prototypeModel.pth'
-calc = NequIPCalculator.from_deployed_model(model_path, device='cpu')
-'''def var_name(var, all_var=locals()):
-    return [var_name for var_name in all_var if all_var[var_name] is var][0]'''
+model_path = '/work/home/ac877eihwp/renyq/prototypeModel.pth'
+calc = NequIPCalculator.from_deployed_model(model_path, device='cuda')
 def run_neb(IS, FS, nImg, out_file, p):
     steps = 2000
     a = False
@@ -158,7 +156,7 @@ def run_neb(IS, FS, nImg, out_file, p):
 def cycle_neb(IS, FS, nImg, steps, p):
     a = [IS.copy() for i in range(nImg+1)] + [FS]
     for i in a: 
-        i.calc = NequIPCalculator.from_deployed_model(model_path, device='cpu')
+        i.calc = calc#NequIPCalculator.from_deployed_model(model_path, device='cpu')
     neb = NEB(a, climb=True)
     neb.interpolate(method='idpp', mic=True)
     write(f'{p}/neb_interpolated_{nImg}img.xyz', a)  # <--- 新增保存插值路径
@@ -277,153 +275,53 @@ for name in folderpath:
         opt = Sella(initial_structure, trajectory='ts_search.traj')
         opt.run(fmax=0.05)  # fmax 是力的收敛标准
         write(f'{path}/{name}/optimized_ts.xyz', initial_structure)
+    '''    
     def move_i(model,idl,i):
         displacement_vector = np.array([0, 0.0, -i])
         for id in idl:
             current_position = model[id].position.copy()
             new_position = current_position + displacement_vector
             model[id].position = new_position
-        return model
+        return model'''
     with open (f'{path}/foldername.json','r') as j:
         datadict4check = json.load(j)
     answerlist = datadict4check[name]#File name ：[Reaction,mainBodyIdx,subBodyIdx,bonded smiles,broken smiles]
     print(answerlist[0])#
-    IS, FS = read_data(f'{path}/{name}/IS.vasp'), read_data(f'{path}/{name}/FS.vasp')
-    IS_tl = checkISFS(IS,'IS',answerlist)
-    FS_tl = checkISFS(FS,'FS',answerlist)
-    if all(IS_tl) == True and all(FS_tl) == True:
-        json_r_w('feedback.json',{answerlist[0]:'pass'})
-        print('='*5+'-'*40+'='*5)
-        warp(IS,FS,p0)
-    else:
-        
-        if len(IS_tl) == 2 and len(FS_tl) == 3 :
-            TL2 ,TL3 = IS_tl, FS_tl
-            tn = True
-        elif len(IS_tl) == 3 and len(FS_tl) == 2: 
-            TL2 ,TL3 = FS_tl, IS_tl
-            tn = False
-        else:
-            ValueError
-        
-        if TL2[0] == False:
-            json_r_w('feedback.json',{answerlist[0]:'wrong21'})
-        else:
-            if TL3[0] == False:
-                json_r_w('feedback.json',{answerlist[0]:'wrong31'})
+    cp_m_l=[]
+    tmpl=[]
+    for a in range(6):
+        tmp_model = read_data(f'{path}/{name}/ISs/{a}.vasp')
+        tmp_m_tl = checkISFS(tmp_m_tl,'IS',answerlist)
+        tmpl.append(tmp_m_tl)
+        if len(tmp_m_tl) == 3:
+            if all(tmp_m_tl) == True:
+                cp_m_l.append(tmp_model)
             else:
-                trysuccess = False
-                if TL3[1] == True and TL3[2] == False:
-                    if tn == True:
-                        for i in range(1,6):
-                            print('='*5+'-'*40+'='*5)
-                            print(f'shift_{i}')
-                            model1=copy.deepcopy(FS)
-                            move_i(model1,answerlist[2],i/10)
-                            model1.calc = calc
-                            FIRE(model1).run(fmax=0.1,steps=10000)#
-                            BFGS(model1,maxstep=0.05).run(fmax=0.01,steps=10000)
-                            model1_tl = checkISFS(model1,'FS',answerlist)
-                            if all(model1_tl) == True:
-                                print('='*5+'-'*40+'='*5)
-                                print(f'shift_{i}')
-                                warp(IS,model1,p0)
-                                trysuccess = True
-                                break
-                            else:
-                                trysuccess = False
-                    else:
-                        for i in range(1,6):
-                            print('='*5+'-'*40+'='*5)
-                            print(f'shift_{i}')
-                            model1=copy.deepcopy(IS)
-                            move_i(model1,answerlist[2],i/10)
-                            model1.calc = calc
-                            FIRE(model1).run(fmax=0.1,steps=10000)#
-                            BFGS(model1,maxstep=0.05).run(fmax=0.01,steps=10000)
-                            model1_tl = checkISFS(model1,'IS',answerlist)
-                            if all(model1_tl) == True:
-                                print('='*5+'-'*40+'='*5)
-                                print(f'shift_{i}')
-                                warp(model1,FS,p0)
-                                trysuccess = True
-                                break
-                            else:
-                                trysuccess = False
-                if TL3[1] == False and TL3[2] == False:
-                    if tn == True:
-                        for i in range(1,6):
-                            print('='*5+'-'*40+'='*5)
-                            print(f'shift_{i}')
-                            model1=copy.deepcopy(FS)
-                            move_i(model1,answerlist[1],i/10)
-                            move_i(model1,answerlist[2],i/10)
-                            model1.calc = calc
-                            FIRE(model1).run(fmax=0.1,steps=10000)#
-                            BFGS(model1,maxstep=0.05).run(fmax=0.01,steps=10000)
-                            model1_tl = checkISFS(model1,'FS',answerlist)
-                            if all(model1_tl) == True:
-                                warp(IS,model1,p0)
-                                trysuccess = True
-                                break
-                            else:
-                                trysuccess = False
-                    else:
-                        for i in range(1,6):
-                            print('='*5+'-'*40+'='*5)
-                            print(f'shift_{i}')
-                            model1=copy.deepcopy(IS)
-                            move_i(model1,answerlist[1],i/10)
-                            move_i(model1,answerlist[2],i/10)
-                            model1.calc = calc
-                            FIRE(model1).run(fmax=0.1,steps=10000)#
-                            BFGS(model1,maxstep=0.05).run(fmax=0.01,steps=10000)
-                            model1_tl = checkISFS(model1,'IS',answerlist)
-                            if all(model1_tl) == True:
-                                warp(model1,FS,p0)
-                                trysuccess = True
-                                break
-                            else:
-                                trysuccess = False
-                if TL3[1] == False and TL3[2] == True:
-                    if tn == True:
-                        for i in range(1,6):
-                            print('='*5+'-'*40+'='*5)
-                            print(f'shift_{i}')
-                            model1=copy.deepcopy(FS)
-                            move_i(model1,answerlist[1],i/10)
-                            model1.calc = calc
-                            FIRE(model1).run(fmax=0.1,steps=10000)#
-                            BFGS(model1,maxstep=0.05).run(fmax=0.01,steps=10000)
-                            model1_tl = checkISFS(model1,'FS',answerlist)
-                            if all(model1_tl) == True:
-                                warp(IS,model1,p0)
-                                trysuccess = True
-                                break
-                            else:
-                                trysuccess = False
-                    else:
-                        for i in range(1,6):
-                            print('='*5+'-'*40+'='*5)
-                            print(f'shift_{i}')
-                            model1=copy.deepcopy(IS)
-                            move_i(model1,answerlist[1],i/10)
-                            model1.calc = calc
-                            FIRE(model1).run(fmax=0.1,steps=10000)#
-                            BFGS(model1,maxstep=0.05).run(fmax=0.01,steps=10000)
-                            model1_tl = checkISFS(model1,'IS',answerlist)
-                            if all(model1_tl) == True:
-                                warp(model1,FS,p0)
-                                trysuccess = True
-                                break
-                            else:
-                                trysuccess = False
-                if trysuccess == False:
-                    json_r_w('feedback.json',{answerlist[0]:'wrong322'})
-                else:
-                    json_r_w('feedback.json',{answerlist[0]:'pass_by_i'})
-                        
-
+                pass
+        else:
+            ValueError('Error:1')
+    if cp_m_l == []:
+        json_r_w('feedback.json',{answerlist[0]:tmpl})
+    else:
+        cp_m_E = []
+        for cp_m in cp_m_l:
+            cp_m_energy = cp_m.get_potential_energy()
+            cp_m_E.append(cp_m_energy)
+        Emin = min(cp_m_E)
+        IS, FS = cp_m_l[cp_m_E.index(Emin)], read_data(f'{path}/{name}/FS.vasp')
+        IS_tl = checkISFS(IS,'IS',answerlist)
+        FS_tl = checkISFS(FS,'FS',answerlist)
+        if all(IS_tl) == True and all(FS_tl) == True:
+            json_r_w('feedback.json',{answerlist[0]:'pass'})
+            print('='*5+'-'*40+'='*5)
+            warp(IS,FS,p0)
+        else:
+            if FS_tl[0] == True and FS_tl[1] == False:
+                json_r_w('feedback.json',{answerlist[0]:'pass_FS_not_ads'})
+                print('='*5+'-'*40+'='*5)
+                warp(IS,FS,p0)
+            else:
+                json_r_w('feedback.json',{answerlist[0]:('FS:',FS_tl)})
 
                         
 

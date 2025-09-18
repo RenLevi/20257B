@@ -16,5 +16,3 @@ python neb_searchTS.py | tee -a resLog.out
 echo "" | tee -a resLog.out
 echo "Evaluation finished"
 echo "See resLog.out to check the results"
-
-
