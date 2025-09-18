@@ -19,7 +19,7 @@ for i in range(len(foldersplitlist)):
     with open(f'test/jobsub/neb/{i}/config.json','w') as j:
         json.dump(data,j)
     sp.copyFiles('NEB/neb_searchTS.py',f'test/jobsub/neb/{i}')
-    sp.copyFiles('NEB/jobsearchts.sh',f'test/jobsub/neb/{i}')
+    sp.copyFiles('NEB/jobSubmit.sh',f'test/jobsub/neb/{i}')
     sp.run_command_in_directory(directory=f'test/jobsub/neb/{i}',command='sbatch jobSubmit.sh')
 
     
