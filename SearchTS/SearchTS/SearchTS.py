@@ -170,10 +170,13 @@ def D_criteria(delta_dIS,delta_dFS):
     计算D_criteria
     """
     if delta_dIS*delta_dFS > 0:
+        print("diff_IS和diff_FS符号相同,满足D_criteria")
         return True
-    elif np.abs(delta_dIS) < 0.05 or np.abs(delta_dFS) < 0.05:   
+    elif np.abs(delta_dIS) < 0.05 and np.abs(delta_dFS) < 0.05:
+        print("diff_IS和diff_FS绝对值均小于0.05,满足D_criteria")   
         return True
     else:
+        print("不满足D_criteria")
         return False 
 class RDA_D():
     def __init__(self,ISfile,FSfile,path):
@@ -182,11 +185,16 @@ class RDA_D():
         self.path = path
         if not os.path.exists(f'{self.path}/IntermediateProcess'):
             os.makedirs(f'{self.path}/IntermediateProcess')
+            os.mkdir(f'{self.path}/IntermediateProcess/step1')
+            os.mkdir(f'{self.path}/IntermediateProcess/step2')
+            os.mkdir(f'{self.path}/IntermediateProcess/step3')
+            os.mkdir(f'{self.path}/IntermediateProcess/results')
+            os.mkdir(f'{self.path}/IntermediateProcess/optimized_IS_FS')    
     def opt(self,calculator):
-        if check_file_exists(f'{self.path}/IntermediateProcess', 'IS_opt.vasp') and check_file_exists(f'{self.path}/IntermediateProcess', 'FS_opt.vasp'):
+        if check_file_exists(f'{self.path}/IntermediateProcess/optimized_IS_FS', 'IS_opt.vasp') and check_file_exists(f'{self.path}/IntermediateProcess/optimized_IS_FS', 'FS_opt.vasp'):
             print("检测到已优化的IS和FS，直接读取")
-            self.optIS = read(f'{self.path}/IntermediateProcess/IS_opt.vasp')
-            self.optFS = read(f'{self.path}/IntermediateProcess/FS_opt.vasp')
+            self.optIS = read(f'{self.path}/IntermediateProcess/optimized_IS_FS/IS_opt.vasp')
+            self.optFS = read(f'{self.path}/IntermediateProcess//optimized_IS_FS/FS_opt.vasp')
             return self.optIS, self.optFS
         else:
             print("未检测到已优化的IS和FS，开始优化")
@@ -195,15 +203,16 @@ class RDA_D():
             atoms1.calc = calculator
             print('Optimizing IS...')
             BFGS(atoms1).run(fmax=0.01)
-            write(f'{self.path}/IntermediateProcess/IS_opt.vasp', atoms1)
+            write(f'{self.path}/IntermediateProcess/optimized_IS_FS/IS_opt.vasp', atoms1)
             atoms2.calc = calculator
             print('Optimizing FS...')
             BFGS(atoms2).run(fmax=0.01)
-            write(f'{self.path}/IntermediateProcess/FS_opt.vasp', atoms2)
+            write(f'{self.path}/IntermediateProcess/optimized_IS_FS/FS_opt.vasp', atoms2)
             print('IS and FS optimization done!')
             self.optIS = atoms1
             self.optFS = atoms2
             return atoms1, atoms2
+    '''
     def readData(self):
         IS,FS = self.IS,self.FS
         def warp(atoms):
@@ -221,6 +230,7 @@ class RDA_D():
         assert IS_fixed == FS_fixed, "IS和FS的固定原子不一致!"
         self.fixed_atoms = IS_fixed
         return IS_fixed
+        '''
     def run(self, calculator):
         # 线性插值生成中间结构
         RIS = self.optIS
@@ -228,7 +238,7 @@ class RDA_D():
         path_IP = f'{self.path}/IntermediateProcess/'
         print('-'*50)
         print("Step 1:生成中间结构R1   <R_alpha>")
-        R1 = interpolate_structure(RIS,RFS, fraction=0.5, output_file=f'{path_IP}R_alpha.vasp')
+        R1 = interpolate_structure(RIS,RFS, fraction=0.5, output_file=f'{path_IP}step1/R_alpha.vasp')
         # 设置计算器
         calc = calculator
         # 使用能量收敛准则优化中间结构
@@ -236,17 +246,20 @@ class RDA_D():
         R1Copt, alpha_energy_history = optimize_with_energy_criterion(R1, calc, 
                                                                         energy_threshold=0.01, 
                                                                         max_steps=100, 
-                                                                        trajectory_file=f'{path_IP}R1Copt.traj')
+                                                                        trajectory_file=f'{path_IP}step1/R1Copt.traj')
         sigma_R1,diff_IS,diff_FS = directionality_sigma(RIS,RFS,R1Copt,R1)
         if D_criteria(diff_IS,diff_FS) == True:
             print("R1Copt满足D_criteria")
             print('Start Sella')
-            Sella_Search = Sella(R1Copt, 
-                                 #logfile=f'{path_IP}R1Copt_sella.log', 
-                                 trajectory=f'{path_IP}R1Copt_sella.traj')
+            write(f'{path_IP}step1/R1Copt.vasp', R1Copt)
+            QTS = copy.deepcopy(R1Copt)
+            Sella_Search = Sella(QTS, 
+                                 logfile=f'{path_IP}step1/R1Copt_sella.log', 
+                                 trajectory=f'{path_IP}step1/R1Copt_sella.traj')
             Sella_Search.run(fmax=0.05)
-            write(f'{self.path}/TS_RDA_D_combine_Sella.vasp', R1Copt)
-            return R1Copt
+            write(f'{path_IP}/result/TS_RDA_D_combine_Sella.vasp', QTS)
+            print("过渡态搜索完成,结果保存在TS_RDA_D_combine_Sella.vasp")
+            return R1Copt,QTS
         else:
             print("R1Copt不满足D_criteria,继续调整IS和FS")
             print('-'*50)
@@ -259,12 +272,14 @@ class RDA_D():
                 Rref = copy.deepcopy(RIS)
             else:
                 raise ValueError("sigma_check==Nondirectional,程序终止!")
-            R2 = interpolate_structure(R1Copt,Rref,fraction=0.5, output_file=f'{path_IP}R_beta.vasp')
+            write(f'{path_IP}step2/Rref.vasp', Rref)
+            R2 = interpolate_structure(R1Copt,Rref,fraction=0.5, output_file=f'{path_IP}step2/R_beta.vasp')
             print("条件优化R2")
             R2Copt, beta_energy_history = optimize_with_energy_criterion(R2, calc, 
                                                                          energy_threshold=0.05,
                                                                          max_steps=100,
-                                                                         trajectory_file=f'{path_IP}R2Copt.traj')
+                                                                         trajectory_file=f'{path_IP}step2/R2Copt.traj')
+            write(f'{path_IP}step2/R2Copt.vasp', R2Copt)
             sigma_R2,diff_IS_R2,diff_FS_R2 = directionality_sigma(R1Copt,Rref,R2Copt,R2)
             beta = 0.5
             BETAlist = []
@@ -273,13 +288,14 @@ class RDA_D():
                 sigma_Ri = copy.deepcopy(sigma_R2)
                 while sigma_Ri != sigma_R1:
                     beta = beta - 0.1
-                    assert beta > 0 and beta < 1, "beta < 0 / > 1,程序终止!"
+                    assert beta >= 0 , "beta < 0 ,程序终止!"
                     Ri = interpolate_structure(R1Copt,Rref,fraction=beta)
                     print(f"当前beta: {beta}")
                     RiCopt, energy_history = optimize_with_energy_criterion(Ri, calc, 
                                                                             energy_threshold=0.05,
                                                                             max_steps=100,
                                                                             trajectory_file=None)
+                    write(f'{path_IP}/step2/Ri_beta_{beta*10}.vasp', RiCopt)
                     sigma_Ri,diff_IS_Ri,diff_FS_Ri = directionality_sigma(R1Copt,Rref,RiCopt,Ri)
                     BETAlist.append(beta)
                 Rdc_beta =  copy.deepcopy(BETAlist[-1])
@@ -289,13 +305,14 @@ class RDA_D():
                 BETAlist.append(beta)
                 while sigma_Ri == sigma_R1:
                     beta = beta + 0.1
-                    assert beta > 0 and beta < 1, "beta < 0 / > 1,程序终止!"
+                    assert  beta <= 1, "beta > 1,程序终止!"
                     Ri = interpolate_structure(R1Copt,Rref,fraction=beta)
                     print(f"当前beta: {beta}")
                     RiCopt, energy_history = optimize_with_energy_criterion(Ri, calc, 
                                                                             energy_threshold=0.05,
                                                                             max_steps=100,
                                                                             trajectory_file=None)
+                    write(f'{path_IP}/step2/Ri_beta_{beta*10}.vasp', RiCopt)
                     sigma_Ri,diff_IS_Ri,diff_FS_Ri = directionality_sigma(R1Copt,Rref,RiCopt,Ri)
                     BETAlist.append(beta)
                 Rdc_beta =  copy.deepcopy(BETAlist[-2])
@@ -303,36 +320,45 @@ class RDA_D():
             print(f"Rdc_beta: {Rdc_beta}, Rdnc_beta: {Rdnc_beta}")
             print('-'*50)
             print("Step 3:生成初猜过渡态R3   <R_gamma>")
-            Rdc = interpolate_structure(R1Copt,Rref,fraction=Rdc_beta, output_file=f'{path_IP}Rdc.vasp')
-            Rdnc = interpolate_structure(R1Copt,Rref,fraction=Rdnc_beta, output_file=f'{path_IP}Rdnc.vasp')
+            Rdc = interpolate_structure(R1Copt,Rref,fraction=Rdc_beta, output_file=f'{path_IP}step2/Rdc.vasp')
+            Rdnc = interpolate_structure(R1Copt,Rref,fraction=Rdnc_beta, output_file=f'{path_IP}step2/Rdnc.vasp')
             RdncCopt, Rdnc_energy_history = optimize_with_energy_criterion(Rdnc, calc, 
                                                                            energy_threshold=0.05,
                                                                            max_steps=100,
-                                                                           trajectory_file=f'{path_IP}RdncCopt.traj')
+                                                                           trajectory_file=f'{path_IP}step3/RdncCopt.traj')
+            write(f'{path_IP}step3/RdncCopt.vasp', RdncCopt)
             gamma = 0.1
-            R3 = interpolate_structure(RdncCopt,Rref,fraction=0.1)
+            R3 = interpolate_structure(RdncCopt,Rref,fraction=0.1,output_file=f'{path_IP}step3/R_gamma_1.vasp')
             Rgamma = copy.deepcopy(R3)
             while Euclidean_distance(Rgamma,Rref) >= Euclidean_distance(Rdnc,Rref):
-                Rgamma = interpolate_structure(RdncCopt,Rref,fraction=gamma+0.1)
                 gamma = gamma + 0.1
-                assert gamma > 0 and gamma < 1, "gamma < 0 / > 1,程序终止!"
+                Rgamma = interpolate_structure(RdncCopt,Rref,fraction=gamma)
+                write(f'{path_IP}step3/R_gamma_{gamma*10}.vasp', Rgamma)
+                assert gamma <= 1, "gamma  > 1,程序终止!"
             print(f"gamma: {gamma}")
-            write(f'{path_IP}/R_gamma.vasp', Rgamma)
+            write(f'{path_IP}step3/R_gamma.vasp', Rgamma)
             print("Start Sella")
-            Sella_Search = Sella(Rgamma, 
-                                 #logfile=f'{path_IP}Rgamma_sella.log', 
-                                 trajectory=f'{path_IP}Rgamma_sella.traj')
+            QTS = copy.deepcopy(Rgamma)
+            Sella_Search = Sella(QTS, 
+                                 logfile=f'{path_IP}step3/Rgamma_sella.log', 
+                                 trajectory=f'{path_IP}step3/Rgamma_sella.traj')
             Sella_Search.run(fmax=0.05)
-            write(f'{self.path}/TS_RDA_D_combine_Sella.vasp', Rgamma)
-            return Rgamma
+            write(f'{path_IP}results/TS_RDA_D_combine_Sella.vasp', QTS)
+            return Rgamma,QTS
 
 if (__name__ == "__main__"):
     model_path = '/work/home/ac877eihwp/renyq/LUNIX_all/mlp_opt/prototypeModel.pth'
     calculator = NequIPCalculator.from_deployed_model(model_path, device='cpu')
-    p0 = '/work/home/ac877eihwp/renyq/20250828TT/searchTS/RDA-D'
+    p0 = '/work/home/ac877eihwp/renyq/20250828TT/searchTS/t/[H]C_[H]CO'
     SearchTS = RDA_D(ISfile='IS.vasp', FSfile='FS.vasp', path=p0)
     SearchTS.opt(calculator)
     SearchTS.run(calculator)
+    '''model_path = '/public/home/ac877eihwp/haoyl/potential/change/new.pth'
+    calculator = NequIPCalculator.from_deployed_model(model_path, device='cpu')
+    p0 = '/public/home/ac877eihwp/haoyl/yanjiusheng/pianduan2quanbu/2+H/2newmethod'
+    SearchTS = RDA_D(ISfile='IS_opt.vasp', FSfile='FS_opt.vasp', path=p0)
+    SearchTS.opt(calculator)
+    SearchTS.run(calculator)'''
 
             
 
