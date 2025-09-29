@@ -7,8 +7,6 @@ import os
 import sys
 import logging
 
-nequipModel=NequIPCalculator.from_deployed_model(model_path='/work/home/ac877eihwp/renyq/LUNIX_all/mlp_opt/prototypeModel.pth',device='cpu')
-
 #vasp_energies = []
 #nequip_energies = []
 #ss=ase.io.read('OUTCAR', index=':')
@@ -21,10 +19,11 @@ nequipModel=NequIPCalculator.from_deployed_model(model_path='/work/home/ac877eih
 #  print(log_message)
 # vasp_energies.append(vaspE)
 #  nequip_energies.append(nequipE)
-
-struct=ase.io.read('Ru_hcp0001.vasp')
-struct.set_calculator(nequipModel)
+model_path = '/work/home/ac877eihwp/renyq/prototypeModel.pth'
+calc = NequIPCalculator.from_deployed_model(model_path, device='cpu')
+struct=ase.io.read('[H]O[H].xyz')
+struct.calc = calc
 print(f' Starting optmization by NequIP model:')
 #optJob=BFGS(struct, trajectory='nequipOpt.traj')
-optJob=BFGS(struct, trajectory='opt.vasp')
+optJob=BFGS(struct, trajectory='O.vasp')
 optJob.run(fmax=0.05,steps=1000)

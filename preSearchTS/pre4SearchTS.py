@@ -154,6 +154,12 @@ class PREforSearchTS():
             foldersplit.append(il)
         self.fsp = foldersplit
         return foldersplit
+    
+class SearchTS4All(PREforSearchTS):
+    def __init__(self,path_test):
+        self.neb = path_test+'RDA_S/'
+        with open(f'{self.neb}foldername.json', 'r') as f:
+            self.d = json.load(f)
 if (__name__ == "__main__"):
     path0='/work/home/ac877eihwp/renyq/sella/test'
     pre_neb =PREforSearchTS(path_test=path0)

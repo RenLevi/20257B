@@ -240,8 +240,8 @@ for name in folderpath:
     print(answerlist[0])#
     cp_m_l=[]
     tmpl=[]
-    for a in range(6):
-        tmp_model = read_data(f'{path}/{name}/ISs/{a*2}.vasp')
+    for a in range(3):
+        tmp_model = read_data(f'{path}/{name}/ISs/{a*5}.vasp')
         tmp_m_tl = checkISFS(tmp_model,'IS',answerlist)
         tmpl.append(tmp_m_tl)
         if len(tmp_m_tl) == 3:
@@ -262,11 +262,11 @@ for name in folderpath:
         IS, FS = cp_m_l[cp_m_E.index(Emin)], read_data(f'{path}/{name}/FS.vasp')
         if not os.path.exists(f'{p0}/IntermediateProcess'):
             os.makedirs(f'{p0}/IntermediateProcess')
-            os.mkdir(f'{p0}/IntermediateProcess/step1',exist_ok=True)
-            os.mkdir(f'{p0}/IntermediateProcess/step2',exist_ok=True)
-            os.mkdir(f'{p0}/IntermediateProcess/step3',exist_ok=True)
-            os.mkdir(f'{p0}/IntermediateProcess/results',exist_ok=True)
-            os.mkdir(f'{p0}/IntermediateProcess/optimized_IS_FS',exist_ok=True) 
+            os.makedirs(f'{p0}/IntermediateProcess/step1',exist_ok=True)
+            os.makedirs(f'{p0}/IntermediateProcess/step2',exist_ok=True)
+            os.makedirs(f'{p0}/IntermediateProcess/step3',exist_ok=True)
+            os.makedirs(f'{p0}/IntermediateProcess/results',exist_ok=True)
+            os.makedirs(f'{p0}/IntermediateProcess/optimized_IS_FS',exist_ok=True) 
         p1 = f'{p0}/IntermediateProcess/optimized_IS_FS/'
         write(f'{p1}/IS_opt.vasp',IS)
         write(f'{p1}/FS_opt.vasp',FS)

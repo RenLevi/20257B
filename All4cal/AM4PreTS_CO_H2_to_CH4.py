@@ -18,9 +18,9 @@ for i in range(len(foldersplitlist)):
     os.makedirs(name=f'test/jobsub/RDA_S/{i}',exist_ok=True)
     with open(f'test/jobsub/RDA_S/{i}/config.json','w') as j:
         json.dump(data,j)
-    sp.copyFiles('preSearchTS/opt4SearchTS.py',f'test/jobsub/RDA_S/{i}')
-    sp.copyFiles('preSearchTS/jobpre4TS.sh',f'test/jobsub/RDA_S/{i}')
-    sp.run_command_in_directory(directory=f'test/jobsub/RDA_S/{i}',command='sbatch jobpre4TS.sh')
+    sp.copyFiles('preSearchTS/opt4SearchTS.py',f'test/jobsub/RDA_S_TS/{i}')
+    sp.copyFiles('preSearchTS/jobpre4TS.sh',f'test/jobsub/RDA_S_TS/{i}')
+    sp.run_command_in_directory(directory=f'test/jobsub/RDA_S_TS/{i}',command='sbatch jobpre4TS.sh')
 
     
 

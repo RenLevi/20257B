@@ -8,6 +8,7 @@ import copy
 import os
 from sella import Sella
 from nequip.ase import NequIPCalculator
+import json
 
 def check_file_exists(folder_path, filename):
     """
@@ -190,18 +191,17 @@ class RDA_S():
         self.FS = read(FSfile)
         self.path = path
         if not os.path.exists(f'{self.path}/IntermediateProcess'):
-            ValueError("请先运行opt()函数优化IS和FS")
-            '''os.makedirs(f'{self.path}/IntermediateProcess')
+            os.makedirs(f'{self.path}/IntermediateProcess')
             os.mkdir(f'{self.path}/IntermediateProcess/step1')
             os.mkdir(f'{self.path}/IntermediateProcess/step2')
             os.mkdir(f'{self.path}/IntermediateProcess/step3')
             os.mkdir(f'{self.path}/IntermediateProcess/results')
-            os.mkdir(f'{self.path}/IntermediateProcess/optimized_IS_FS')  '''  
+            os.mkdir(f'{self.path}/IntermediateProcess/optimized_IS_FS')    
     def opt(self,calculator):
         if check_file_exists(f'{self.path}/IntermediateProcess/optimized_IS_FS', 'IS_opt.vasp') and check_file_exists(f'{self.path}/IntermediateProcess/optimized_IS_FS', 'FS_opt.vasp'):
             print("检测到已优化的IS和FS，直接读取")
             self.optIS = read(f'{self.path}/IntermediateProcess/optimized_IS_FS/IS_opt.vasp')
-            self.optFS = read(f'{self.path}/IntermediateProcess//optimized_IS_FS/FS_opt.vasp')
+            self.optFS = read(f'{self.path}/IntermediateProcess/optimized_IS_FS/FS_opt.vasp')
             return self.optIS, self.optFS
         else:
             print("未检测到已优化的IS和FS，开始优化")
@@ -314,16 +314,26 @@ class RDA_S():
             print(f"Rdc_beta: {Rdc_beta}, Rdnc_beta: {Rdnc_beta}")
             Rdc = interpolate_structure(R1Copt,Rref,fraction=Rdc_beta, output_file=f'{path_IP}step2/Rdc.vasp')
             Rdnc = interpolate_structure(R1Copt,Rref,fraction=Rdnc_beta, output_file=f'{path_IP}step2/Rdnc.vasp')
-            RdcCopt, energy_history = optimize_with_energy_criterion(Rdc, calc, 
+            RdncCopt, energy_history = optimize_with_energy_criterion(Rdc, calc, 
                                                                     energy_threshold=0.05,
                                                                     max_steps=100,
                                                                     trajectory_file=f'{path_IP}step3/RdcCopt.traj')
+            sigma_R3,diffis3,difffs3 = directionality_sigma(RIS,RFS,RdncCopt,Rdnc)
+            if sigma_R3 == 'IS':
+                print("将RFS作为Rref")
+                Rref = copy.deepcopy(RFS)
+            elif sigma_R3 == 'FS':
+                print("将RIS作为Rref")
+                Rref = copy.deepcopy(RIS)
+            else:
+                raise ValueError("sigma_check==Nondirectional,程序终止!")
+            write(f'{path_IP}step3/Rref.vasp', Rref)
             gamma = 0.1
-            R3 = interpolate_structure(RdcCopt,Rref,fraction=0.1,output_file=f'{path_IP}step3/R_gamma_1.vasp')
+            R3 = interpolate_structure(RdncCopt,Rref,fraction=0.1,output_file=f'{path_IP}step3/R_gamma_1.vasp')
             Rgamma = copy.deepcopy(R3)
             while Euclidean_distance(Rgamma,Rref) >= Euclidean_distance(Rdnc,Rref):
                 gamma = gamma + 0.1
-                Rgamma = interpolate_structure(RdcCopt,Rref,fraction=gamma,output_file=f'{path_IP}step3/R_gamma_{int(gamma*10)}.vasp')
+                Rgamma = interpolate_structure(RdncCopt,Rref,fraction=gamma,output_file=f'{path_IP}step3/R_gamma_{int(gamma*10)}.vasp')
                 assert gamma <= 1, "gamma  > 1,程序终止!"
             print(f"gamma: {gamma}")
             write(f'{path_IP}step3/R_gamma.vasp', Rgamma)
@@ -355,14 +365,36 @@ class RDA_S():
             print("过渡态搜索完成,结果保存在TS_RDA_S_****.vasp")
             #return Rgamma,QTS
 
-if (__name__ == "__main__"):
+'''------------------------------------------------------'''
+
+model_path = '/work/home/ac877eihwp/renyq/prototypeModel.pth'
+calc = NequIPCalculator.from_deployed_model(model_path, device='cpu')
+with open('config.json','r') as j:
+    data = json.load(j)
+path = data['path']
+folderpath=data['folderpath']
+for name in folderpath:
+    p0 = f'{path}/{name}'
+    with open (f'{path}/foldername.json','r') as j:
+        datadict4check = json.load(j)
+    answerlist = datadict4check[name]#File name ：[Reaction,bond changed atoms(bid,eid),mainBodyIdx,subBodyIdx,bonded smiles,broken smiles]
+    print(answerlist[0])#
+    if os.path.exists(f'{p0}/IntermediateProcess'):
+        SearchTS = RDA_S(ISfile=f'{path}/{name}/IntermediateProcess/optimized_IS_FS/IS_opt.vasp', FSfile=f'{path}/{name}/IntermediateProcess/optimized_IS_FS/FS_opt.vasp', path=p0)
+        SearchTS.opt(calc)
+        SearchTS.run(calc)
+    else:
+        pass
+'''------------------------------------------------------'''
+
+'''if (__name__ == "__main__"):
     model_path = '/work/home/ac877eihwp/renyq/LUNIX_all/mlp_opt/prototypeModel.pth'
     calculator = NequIPCalculator.from_deployed_model(model_path, device='cpu')
-    p0 = '/work/home/ac877eihwp/renyq/20250828TT/searchTS/t/[H]C_[H]CO'
+    p0 = '/work/home/ac877eihwp/renyq/20250828TT/[H]CO_[H]CO[H]'
     SearchTS = RDA_S(ISfile='IS.vasp', FSfile='FS.vasp', path=p0)
     SearchTS.opt(calculator)
     SearchTS.run(calculator)
-    '''model_path = '/public/home/ac877eihwp/haoyl/potential/change/new.pth'
+    model_path = '/public/home/ac877eihwp/haoyl/potential/change/new.pth'
     calculator = NequIPCalculator.from_deployed_model(model_path, device='cpu')
     p0 = '/public/home/ac877eihwp/haoyl/yanjiusheng/pianduan2quanbu/2+H/2newmethod'
     SearchTS = RDA_D(ISfile='IS_opt.vasp', FSfile='FS_opt.vasp', path=p0)

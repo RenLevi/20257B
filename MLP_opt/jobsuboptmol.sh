@@ -9,7 +9,7 @@
 
 source ~/.bashrc
 conda activate op
-python mlp_cal_metal_Energy.py | tee -a resLog.out
+python mlp_cal_MOLEnergy.py | tee -a resLog.out
 echo "All jobs completed"
 
     

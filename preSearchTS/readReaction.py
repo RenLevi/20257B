@@ -305,7 +305,7 @@ class readreaction():
         self.group2 = moveGroupIdx#sub body
         self.changebondatom = (Bid_infile,Eid_infile)
         newmoll=[]
-        for a in [0,0.2,0.4,0.6,0.8,1.0]:
+        for a in [0,0.5,1.0]:
             newmol = adjust_distance(CB,notmove,notmoveGroupIdx,move,moveGroupIdx,alpha=a,noads=noads)
             if check_molecule_over_surface(newmol) == False:
                     for i in range(1,20):
@@ -321,8 +321,8 @@ class readreaction():
         # 保存为POSCAR文件（VASP格式）
         if format=='poscar' or 'POSCAR' or 'vasp':
             os.makedirs(f'{path}ISs', exist_ok=True)
-            for a in range(6):
-                write(f'{path}ISs/{a*2}.vasp', self.nebIS[a], format='vasp', vasp5=True)
+            for a in range(3):
+                write(f'{path}ISs/{a*5}.vasp', self.nebIS[a], format='vasp', vasp5=True)
             #write(path+'IS.vasp', self.nebIS, format='vasp', vasp5=True)  # vasp5=True添加元素名称
             write(path+'FS.vasp', self.nebFS, format='vasp', vasp5=True)  # vasp5=True添加元素名称
         else:
