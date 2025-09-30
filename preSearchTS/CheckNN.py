@@ -57,14 +57,15 @@ class checkBonds():
         if check_NON_metal_atoms(main_atom) == True or check_NON_metal_atoms(sub_atom) == True:
             if check_NON_metal_atoms(main_atom) == True and check_NON_metal_atoms(sub_atom) == True:
                 if bond(main_atom.elesymbol,sub_atom.elesymbol,dis).judge_bondorder() == 1:
-                    print(f'there is a bond with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.')
+                    #print(f'there is a bond with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.')
                     main_atom.bonddict[sub_atom] = sub_atom.number
                     sub_atom.bonddict[main_atom] = main_atom.number
                 else:
-                    print(f"there isn't a bond with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.")    
+                    pass
+                    #print(f"there isn't a bond with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.")    
             else:
                 if bond(main_atom.elesymbol,sub_atom.elesymbol,dis).judge_bondorder() == 1:
-                    print(f'there is adsorption with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.')
+                    #print(f'there is adsorption with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.')
                     if check_NON_metal_atoms(main_atom) == True:
                         self.adsorption.append(main_atom)
                     else:
@@ -80,7 +81,7 @@ class checkBonds():
                     self.CheckBondwith2Atoms(i,j)
                 else:
                     pass
-        print('finish checking ALL bonds')
+        #print('finish checking ALL bonds')
 class BuildMol2Smiles():
     def __init__(self,CB:checkBonds):
         self.metal = 0

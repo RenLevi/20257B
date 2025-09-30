@@ -84,14 +84,15 @@ class checkBonds():
         if check_NON_metal_atoms(main_atom) == True or check_NON_metal_atoms(sub_atom) == True:
             if check_NON_metal_atoms(main_atom) == True and check_NON_metal_atoms(sub_atom) == True:
                 if bond(main_atom.elesymbol,sub_atom.elesymbol,dis).judge_bondorder() == 1:
-                    print(f'there is a bond with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.')
+                    #print(f'there is a bond with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.')
                     main_atom.bonddict[sub_atom] = sub_atom.number
                     sub_atom.bonddict[main_atom] = main_atom.number
                 else:
-                    print(f"there isn't a bond with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.")    
+                    pass
+                    #print(f"there isn't a bond with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.")    
             else:
                 if bond(main_atom.elesymbol,sub_atom.elesymbol,dis).judge_bondorder() == 1:
-                    print(f'there is adsorption with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.')
+                    #print(f'there is adsorption with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.')
                     if check_NON_metal_atoms(main_atom) == True:
                         self.adsorption.append(main_atom)
                     else:
@@ -107,7 +108,7 @@ class checkBonds():
                     self.CheckBondwith2Atoms(i,j)
                 else:
                     pass
-        print('finish checking ALL bonds')
+        #print('finish checking ALL bonds')
 class BuildMol2Smiles():
     def __init__(self,CB:checkBonds):
         self.metal = 0
@@ -143,18 +144,40 @@ class BuildMol2Smiles():
 model_path = '/work/home/ac877eihwp/renyq/prototypeModel.pth'
 calc = NequIPCalculator.from_deployed_model(model_path, device='cpu')
 
-def read_data(file_name):
-    Atoms = read(file_name)
-    Atoms.calc = calc
-    FIRE(Atoms).run(fmax=0.1,steps=10000)#
-    BFGS(Atoms,maxstep=0.05).run(fmax=0.01,steps=10000)#
+def read_data(file_name,model,answerlist,p):
+    [Reaction,bondatom,mainBodyIdx,subBodyIdx,bonded_smiles,broken_smiles] = answerlist
+    if model == 'FS':
+        Atoms = read(file_name)
+        Atoms.calc = calc
+        BFGS(Atoms).run(fmax=0.2,steps=1000)
+        FIRE(Atoms,maxstep=0.05,trajectory=f'{p}FSopt.traj').run(fmax=0.01,steps=1000)
+    elif model == 'IS':
+        Atoms = read(file_name)
+        Atoms.calc = calc
+        fixed_indices = mainBodyIdx
+        Atoms.constraints = [FixAtoms(indices=fixed_indices)]
+        BFGS(Atoms,maxstep=0.05,trajectory=f'{p}IS1opt.traj').run(fmax=0.2,steps=1000)
+        Atoms.set_constraint()
+        fixed_indices = list(range(0, 32))
+        Atoms.constraints = [FixAtoms(indices=fixed_indices)]
+        fixed_indices = subBodyIdx
+        Atoms.constraints = [FixAtoms(indices=fixed_indices)]
+        BFGS(Atoms,maxstep=0.05,trajectory=f'{p}IS2opt.traj').run(fmax=0.2,steps=1000)
+        Atoms.set_constraint()
+        fixed_indices = list(range(0, 32))
+        Atoms.constraints = [FixAtoms(indices=fixed_indices)]
+        opt=FIRE(Atoms,maxstep=0.05,trajectory=f'{p}IS3opt.traj').run(fmax=0.01,steps=1000)
+        if opt == True :
+            print('Optimization converged successfully.')
+        else: 
+            print('Optimization did not converge within the maximum number of steps.')
     ''''''
     return Atoms
 def checkISFS(Atoms,model:str,answerlist):
     Reaction = answerlist[0]
-    bond_smi = answerlist[-1]
-    #broken_smi = answerlist[4]
-    def warp(A,answer):#[Reaction,atoms(),mainBodyIdx,subBodyIdx,bonded smiles,broken smiles]
+    bond_smi = answerlist[-2]
+    broken_smi = answerlist[-1]
+    def warp(A,answer,L):#[Reaction,bondatom,mainBodyIdx,subBodyIdx,bonded smiles,broken smiles]
         atoms = copy.deepcopy(A)
         test = checkBonds()
         test.poscar = Atoms
@@ -162,8 +185,8 @@ def checkISFS(Atoms,model:str,answerlist):
         test.CheckAllBonds()
         bm2s = BuildMol2Smiles(test)
         bm2s.build()
-        out_t = [bool(bm2s.smiles == answer[-1]),None,None]#ttt can pass
-        for i in range(1,3):
+        out_t = [bool(bm2s.smiles == answer[L]),None,None]#ttt can pass
+        for i in range(2,4):
             model = copy.deepcopy(atoms)
             indices_to_remove = answer[i]
             mask = np.ones(len(model), dtype=bool)
@@ -176,9 +199,9 @@ def checkISFS(Atoms,model:str,answerlist):
             bm2s = BuildMol2Smiles(test)
             bm2s.build()
             if bm2s.ads != []:
-                out_t[i] = True
+                out_t[i-1] = True
             else:
-                out_t[i] = False
+                out_t[i-1] = False
         return out_t
     if 'Add' in Reaction:
         if model == 'FS':
@@ -190,12 +213,12 @@ def checkISFS(Atoms,model:str,answerlist):
             bm2s.build()
             return [bool(bm2s.smiles == bond_smi),bool(bm2s.ads != [])]#ttt can pass
         elif model == 'IS':
-            tl = warp(Atoms,answerlist)
+            tl = warp(Atoms,answerlist,-1)
             return tl
         else:
             ValueError('wrong input')
     elif 'Remove' in Reaction:
-        if model == 'IS':
+        if model == 'FS':
             test = checkBonds()
             test.poscar = Atoms
             test.AddAtoms()
@@ -203,8 +226,8 @@ def checkISFS(Atoms,model:str,answerlist):
             bm2s = BuildMol2Smiles(test)
             bm2s.build()
             return [bool(bm2s.smiles == bond_smi),bool(bm2s.ads != [])]#ttt can pass
-        elif model == 'FS':
-            tl = warp(Atoms,answerlist)
+        elif model == 'IS':
+            tl = warp(Atoms,answerlist,-1)
             return tl
         else:
             ValueError('wrong input')
@@ -238,38 +261,39 @@ for name in folderpath:
         datadict4check = json.load(j)
     answerlist = datadict4check[name]#File name ：[Reaction,bond changed atoms(bid,eid),mainBodyIdx,subBodyIdx,bonded smiles,broken smiles]
     print(answerlist[0])#
-    cp_m_l=[]
-    tmpl=[]
-    for a in range(3):
-        tmp_model = read_data(f'{path}/{name}/ISs/{a*5}.vasp')
-        tmp_m_tl = checkISFS(tmp_model,'IS',answerlist)
-        tmpl.append(tmp_m_tl)
-        if len(tmp_m_tl) == 3:
-            if all(tmp_m_tl) == True:
-                cp_m_l.append(tmp_model)
-            else:
-                pass
-        else:
-            ValueError('Error:1')
-    if cp_m_l == []:
-        json_r_w('feedback.json',{answerlist[0]:tmpl})
+    if os.path.exists(f'{p0}/IntermediateProcess/optimized_IS_FS/IS_opt.vasp') and os.path.exists(f'{p0}/IntermediateProcess/optimized_IS_FS/FS_opt.vasp'):
+        IS, FS = read(f'{p0}/IntermediateProcess/optimized_IS_FS/IS_opt.vasp'), read(f'{p0}/IntermediateProcess/optimized_IS_FS/FS_opt.vasp')
+        IS.calc = calc
+        FS.calc = calc
     else:
-        cp_m_E = []
-        for cp_m in cp_m_l:
-            cp_m_energy = cp_m.get_potential_energy()
-            cp_m_E.append(cp_m_energy)
-        Emin = min(cp_m_E)
-        IS, FS = cp_m_l[cp_m_E.index(Emin)], read_data(f'{path}/{name}/FS.vasp')
-        if not os.path.exists(f'{p0}/IntermediateProcess'):
-            os.makedirs(f'{p0}/IntermediateProcess')
-            os.makedirs(f'{p0}/IntermediateProcess/step1',exist_ok=True)
-            os.makedirs(f'{p0}/IntermediateProcess/step2',exist_ok=True)
-            os.makedirs(f'{p0}/IntermediateProcess/step3',exist_ok=True)
-            os.makedirs(f'{p0}/IntermediateProcess/results',exist_ok=True)
-            os.makedirs(f'{p0}/IntermediateProcess/optimized_IS_FS',exist_ok=True) 
-        p1 = f'{p0}/IntermediateProcess/optimized_IS_FS/'
-        write(f'{p1}/IS_opt.vasp',IS)
-        write(f'{p1}/FS_opt.vasp',FS)
+        IS, FS = read_data(f'{path}/{name}/IS.vasp','IS',answerlist,f'{path}/{name}/IntermediateProcess/optimized_IS_FS/'), read_data(f'{path}/{name}/FS.vasp','FS',answerlist,f'{path}/{name}/IntermediateProcess/optimized_IS_FS/')
+
+    IS_check = checkISFS(IS,'IS',answerlist)
+    FS_check = checkISFS(FS,'FS',answerlist)
+    with open('feedback.json','r') as j:
+        file = j.read()
+        if len(file)>0:
+            ne = 'ne'
+        else:
+            ne = 'e'
+    if ne == 'ne':
+        with open ('feedback.json','r') as j:
+            feedback = json.load(j)
+    else:
+        feedback ={}
+    feedback[name] = {'IS':IS_check,'IS_fmax':float((((IS.get_forces())**2).sum(axis = 1)**0.5).max()),'FS':FS_check,'FS_fmax':float((((FS.get_forces())**2).sum(axis = 1)**0.5).max())}
+    with open('feedback.json','w') as j:
+        json.dump(feedback,j,indent=2)
+    if not os.path.exists(f'{p0}/IntermediateProcess'):
+        os.makedirs(f'{p0}/IntermediateProcess')
+        os.makedirs(f'{p0}/IntermediateProcess/step1',exist_ok=True)
+        os.makedirs(f'{p0}/IntermediateProcess/step2',exist_ok=True)
+        os.makedirs(f'{p0}/IntermediateProcess/step3',exist_ok=True)
+        os.makedirs(f'{p0}/IntermediateProcess/results',exist_ok=True)
+        os.makedirs(f'{p0}/IntermediateProcess/optimized_IS_FS',exist_ok=True) 
+    p1 = f'{p0}/IntermediateProcess/optimized_IS_FS/'
+    write(f'{p1}/IS_opt.vasp',IS)
+    write(f'{p1}/FS_opt.vasp',FS)
 
                         
 
