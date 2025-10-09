@@ -149,8 +149,11 @@ def read_data(file_name,model,answerlist,p):
     if model == 'FS':
         Atoms = read(file_name)
         Atoms.calc = calc
-        BFGS(Atoms).run(fmax=0.2,steps=1000)
-        FIRE(Atoms,maxstep=0.05,trajectory=f'{p}FSopt.traj').run(fmax=0.01,steps=1000)
+        opt = BFGS(Atoms,maxstep=0.05,trajectory=f'{p}FSopt.traj').run(fmax=0.01,steps=2000)
+        if opt == True :
+            print('Optimization converged successfully.')
+        else: 
+            print('Optimization did not converge within the maximum number of steps.')
     elif model == 'IS':
         Atoms = read(file_name)
         Atoms.calc = calc

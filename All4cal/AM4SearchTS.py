@@ -12,6 +12,7 @@ for i in range(len(foldersplitlist)):
         #'record':'/work/home/ac877eihwp/renyq/20250828TT/test/opt/system/record_adscheck.json',
         'folderpath':fl
         }
+    os.makedirs(name=f'test/jobsub/RDA_S/{i}',exist_ok=True)
     with open(f'test/jobsub/RDA_S/{i}/config.json','w') as j:
         json.dump(data,j)
     sp.copyFiles('RDA_S/SearchTS.py',f'test/jobsub/RDA_S/{i}')

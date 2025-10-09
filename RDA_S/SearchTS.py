@@ -343,7 +343,7 @@ class RDA_S():
                                  logfile=f'{path_IP}step3/Rgamma_sella.log', 
                                  trajectory=f'{path_IP}step3/Rgamma_sella.traj')
             Sella_Search.run(fmax=0.05)
-            write(f'{path_IP}results/TS_RDA_S_RdcCopt.vasp', QTS)
+            write(f'{path_IP}results/TS_RDA_S_RdncCopt.vasp', QTS)
             '''------------------------------------------'''
             R4 = interpolate_structure(Rdnc,Rref,fraction=0.1,output_file=f'{path_IP}step3/R_gamma_1_Rdnc.vasp')
             gamma = 0.1

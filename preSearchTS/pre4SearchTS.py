@@ -3,6 +3,11 @@ import os
 import shutil
 import json
 from ase.io import read
+import site_positions.SearchSite as SS
+from ase.build import hcp0001
+from preSearchTS.JmolNN import bond
+import numpy as np
+from scipy.spatial import cKDTree
 '''
     #:注释
     #...:用于测试，可以删除
@@ -48,8 +53,53 @@ def collect_Alljson(path_d,path_test,check_json,batch):
         return ValueError('some record loss!!!')
     else:
         pass
+def find_nearest_neighbor_kdtree(points, query_point):
+    """
+    使用KDTree查找最近邻点
+    
+    参数:
+    points: 点集，形状为(n, 3)的numpy数组
+    query_point: 查询点，形状为(3,)的numpy数组
+    
+    返回:
+    nearest_point: 最近的点
+    nearest_index: 最近点的索引
+    distance: 距离
+    """
+    # 构建KDTree
+    tree = cKDTree(points)
+    
+    # 查询最近邻
+    distance, nearest_index = tree.query(query_point)
+    nearest_point = points[nearest_index]
+    
+    return nearest_point, nearest_index, distance
 class molfile():
-    def __init__(self,checkdict,name,path_test):
+    def __init__(self,checkdict,name,path_test,slab = None):
+
+        '''if slab == None:
+            slab = hcp0001('Ru', size=(4, 4, 4), vacuum=10.0)
+        else:
+            slab = slab
+        finder = SS.SurfaceSiteFinder(slab)
+        grid_points = finder.create_grid(grid_spacing=0.1, height_above_surface=3.0)
+        wrapped_points = finder.wrap_grid_to_surface(contact_distance=2, step_size=0.1,height_above_surface=3.0)
+        sites, positions, vectors = finder.find_sites(contact_distance=2)
+        site_types = finder.classify_sites(multi_site_threshold=2)
+        top=[]
+        bridge=[]
+        hollow=[]
+        points = []
+        for atom_indices, site_type in site_types.items():
+            points.append(positions[atom_indices])
+            if site_type == 'top':
+                top.append(positions[atom_indices])
+            elif site_type == 'bridge':
+                bridge.append(positions[atom_indices])
+            else:
+                hollow.append(positions[atom_indices])        
+        points = np.array(points)'''
+
         self.name =name
         self.report = checkdict[name]#[cp,wf,wb,wna,waH]
         '''
@@ -80,6 +130,13 @@ class molfile():
                 self.model_p = f'{species}{name}/{wna[id]}/nequipOpt.traj'
             else:
                 self.model_p = None
+        '''        if self.model_p != None:
+            atoms = read(self.model_p)
+            for i, atom in enumerate(atoms):
+                
+        else:
+            self.site = None'''
+
 class PREforSearchTS():
     def __init__(self,path_test):
         self.mainfolder = path_test#/work/home/ac877eihwp/renyq/xxx/test/
@@ -104,7 +161,7 @@ class PREforSearchTS():
         if count_file != len(folder_dict):
             ValueError
         else:pass
-        print('Finish reading data from opt')
+        print('Finish reading data from opt')        
     def buildmodel(self,reaction_txt):
         mainfolder = self.neb
         os.makedirs(mainfolder, exist_ok=True)  # exist_ok=True 避免目录已存在时报错
@@ -139,7 +196,7 @@ class PREforSearchTS():
                 os.makedirs(subfolder, exist_ok=True)
                 RR.save(subfolder,'POSCAR')
         with open(f'{mainfolder}foldername.json', 'r') as f:
-            self.d = json.load(f)   
+            self.d = json.load(f)               
     def start_split(self,batch):
         fd = self.d
         floderlist = list(fd.keys())

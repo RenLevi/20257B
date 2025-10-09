@@ -130,7 +130,7 @@ def adjust_distance(CB,
     atoms = copy.deepcopy(CB.poscar)
     pos1 = atoms.positions[notmove]
     pos2 = atoms.positions[move]
-    if noads == False:pass
+    '''if noads == False:pass
     else:
         molIdxlist=[]
         for atom in atoms:
@@ -153,7 +153,7 @@ def adjust_distance(CB,
         if are_vectors_parallel(val,np.array([0,0,-1])) == False:
             group.rotate(v=axis_vz,a=-2*theta,center=pos1)
         group.translate((0,0,19-pos1[2]))
-        atoms.positions[molIdxlist] = group.positions
+        atoms.positions[molIdxlist] = group.positions'''
     p2=pos2
     p1=pos1
     if np.abs(p2[1]-p1[1])<=0.1 and np.abs(p2[0]-p1[0])<=0.1:
@@ -192,7 +192,7 @@ def adjust_distance(CB,
         if atom.symbol in ['C','H','O']:
             aid = atom.index
             atoms.positions[aid] = atoms.positions[aid]+np.array([0,0,alpha+delta])
-    if noads == False:pass
+    '''if noads == False:pass
     else:
         addgroup = atoms[mGidx]
         for a in addgroup:
@@ -206,7 +206,7 @@ def adjust_distance(CB,
         addval=addgroup.positions[addgroup_pos2_idx]-pos1
         if are_vectors_parallel(addval,np.array([0,0,-1])) == False:
             addgroup.rotate(v=axis_vz,a=-2*theta,center=pos1)
-        atoms.positions[mGidx]=addgroup.positions
+        atoms.positions[mGidx]=addgroup.positions'''
     return atoms
 def check_neighbor(id,cb):
     idx = []
@@ -284,10 +284,10 @@ class readreaction():
         '''
         if reactiontype == 'Add':
             CB = CB2
-            self.nebFS = CB2.poscar
+            self.FScheck = CB2.poscar
         else:
             CB = CB1
-            self.nebFS = CB1.poscar
+            self.FScheck = CB1.poscar
         if bool(CB.adsorption) == False:
             noads = True
         else:
@@ -298,21 +298,48 @@ class readreaction():
         self.group1 = notmoveGroupIdx#main body
         self.group2 = moveGroupIdx#sub body
         self.changebondatom = (Bid_infile,Eid_infile)
-        newmol = adjust_distance(CB,notmove,notmoveGroupIdx,move,moveGroupIdx,alpha=0.1,noads=noads)
+        newmol = adjust_distance(CB,notmove,notmoveGroupIdx,move,moveGroupIdx,alpha=0.5,noads=noads)
         if check_molecule_over_surface(newmol) == False:
                 for i in range(1,20):
-                    newmol = adjust_distance(CB,notmove,notmoveGroupIdx,move,moveGroupIdx,alpha=0.1,delta=0.1*i,noads=noads)
+                    newmol = adjust_distance(CB,notmove,notmoveGroupIdx,move,moveGroupIdx,alpha=0.5,delta=0.1*i,noads=noads)
                     if check_molecule_over_surface(newmol) == True:
                         print('higher over surface')
                         break
-        self.nebIS = newmol
+        self.IScheck = newmol
         self.check =smilesFORcheck 
         self.split =smilesFORspilt
+    def buildISFS(self,mf,site,slab):
+        g14fs = self.FScheck[self.group1]
+        g24fs = self.FScheck[self.group2]
+        self.FS = slab+g14fs+g24fs
+        if mf == None:
+            ValueError('Please build opt database first')
+        else:pass
+        IScheck = copy.deepcopy(self.IScheck)
+        g1 = IScheck[self.group1]
+        g2 = IScheck[self.group2]
+        cbg1 = checkBonds()
+        cbg1.input(g1)
+        cbg1.AddAtoms()
+        cbg1.CheckAllBonds()
+        cbg2 = checkBonds()
+        cbg2.input(g2)
+        cbg2.AddAtoms()
+        cbg2.CheckAllBonds()
+        BMSg1 = BuildMol2Smiles(cbg1)
+        BMSg1.build()
+        BMSg2 = BuildMol2Smiles(cbg2)
+        BMSg2.build()
+        if mf.get(BMSg1.smiles) == False or mf.get(BMSg2.smiles) == False:
+            return ValueError(f'Cannot find the molecule in database, please check the smiles!\n {BMSg1.smiles} or {BMSg2.smiles}')
+        else:pass
+        
+
     def save(self,path,format):
         # 保存为POSCAR文件（VASP格式）
         if format=='poscar' or 'POSCAR' or 'vasp':
-            write(path+'IS.vasp', self.nebIS, format='vasp', vasp5=True)  # vasp5=True添加元素名称
-            write(path+'FS.vasp', self.nebFS, format='vasp', vasp5=True)  # vasp5=True添加元素名称
+            write(path+'IS.vasp', self.IS, format='vasp', vasp5=True)  # vasp5=True添加元素名称
+            write(path+'FS.vasp', self.FS, format='vasp', vasp5=True)  # vasp5=True添加元素名称
         else:
             print('format should be .vasp')
 
