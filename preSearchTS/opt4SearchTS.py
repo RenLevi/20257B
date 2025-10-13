@@ -145,6 +145,40 @@ model_path = '/work/home/ac877eihwp/renyq/prototypeModel.pth'
 calc = NequIPCalculator.from_deployed_model(model_path, device='cpu')
 
 def read_data(file_name,model,answerlist,p):
+    def warp(A,answer,L):#[Reaction,bondatom,mainBodyIdx,subBodyIdx,bonded smiles,broken smiles]
+        atoms = copy.deepcopy(A)
+        alltest = checkBonds()
+        alltest.poscar = atoms
+        alltest.AddAtoms()
+        alltest.CheckAllBonds()
+        allbm2s = BuildMol2Smiles(alltest)
+        allbm2s.build()
+        out_t = [bool(allbm2s.smiles == answer[L]),None,None]#ttt can pass
+        out_smi = [allbm2s.smiles,None,None]
+        for i in range(2,4):
+            model = copy.deepcopy(atoms)
+            indices_to_remove = answer[i]
+            mask = np.ones(len(model), dtype=bool)
+            mask[indices_to_remove] = False
+            model = model[mask]
+            test = checkBonds()
+            test.poscar = model
+            test.AddAtoms()
+            test.CheckAllBonds()
+            bm2s = BuildMol2Smiles(test)
+            bm2s.build()
+            out_smi[i-1]=bm2s.smiles
+            if bm2s.ads != []:
+                out_t[i-1] = True
+            else:
+                out_t[i-1] = False
+        temp=out_smi[-1]
+        out_smi[-1]=out_smi[-2]
+        out_smi[-2]=temp
+        temp=out_t[-1]
+        out_t[-1]=out_t[-2]
+        out_t[-2]=temp
+        return out_t,out_smi
     [Reaction,bondatom,mainBodyIdx,subBodyIdx,bonded_smiles,broken_smiles] = answerlist
     if model == 'FS':
         Atoms = read(file_name)
@@ -153,23 +187,34 @@ def read_data(file_name,model,answerlist,p):
         if opt == True :
             print('Optimization converged successfully.')
         else: 
-            print('Optimization did not converge within the maximum number of steps.')
+            return ValueError('Optimization did not converge within the maximum number of steps.')
     elif model == 'IS':
         Atoms = read(file_name)
+        bbb,sss = warp(Atoms,answerlist,-1)
         Atoms.calc = calc
-        fixed_indices = mainBodyIdx
-        Atoms.constraints = [FixAtoms(indices=fixed_indices)]
-        BFGS(Atoms,maxstep=0.05,trajectory=f'{p}IS1opt.traj').run(fmax=0.2,steps=1000)
-        Atoms.set_constraint()
-        fixed_indices = list(range(0, 32))
-        Atoms.constraints = [FixAtoms(indices=fixed_indices)]
-        fixed_indices = subBodyIdx
-        Atoms.constraints = [FixAtoms(indices=fixed_indices)]
-        BFGS(Atoms,maxstep=0.05,trajectory=f'{p}IS2opt.traj').run(fmax=0.2,steps=1000)
-        Atoms.set_constraint()
-        fixed_indices = list(range(0, 32))
-        Atoms.constraints = [FixAtoms(indices=fixed_indices)]
-        opt=FIRE(Atoms,maxstep=0.05,trajectory=f'{p}IS3opt.traj').run(fmax=0.01,steps=1000)
+        BFGS(Atoms,trajectory='0.traj').run(steps=10)
+        bbb_t,sss_t = warp(Atoms,answerlist,-1)
+        r1,r2=0,0
+        while bbb_t[0] == False:
+            print(f'{r1,r2,sss,sss_t}')#
+            c1,c2 = bool(sss[1]==sss_t[1]), bool(sss[2]==sss_t[2])
+            if c1 == False:
+                r1=1+r1
+            if c2 == False:
+                r2=1+r2
+            Atoms = read(file_name)
+            Atoms.calc = calc
+            for mid in mainBodyIdx:
+                Atoms.positions[mid] = Atoms.positions[mid]+np.array([0,0,r1])
+            for sid in subBodyIdx:
+                Atoms.positions[sid] = Atoms.positions[sid]+np.array([0,0,r2])
+            BFGS(Atoms,trajectory=f'{r1}{r2}.traj').run(steps=10,fmax=0.01)
+            bbb_t,sss_t = warp(Atoms,answerlist,-1)
+            if r1 >= 5 or r2 >=5:
+                return ValueError('Optimization of IS model did not converge owing to bond broken.')
+            else:pass
+        print(f'{r1,r2,sss[0],sss_t[0]}')#
+        opt=BFGS(Atoms,maxstep=0.05,trajectory=f'{p}ISopt.traj').run(fmax=0.01,steps=1000)
         if opt == True :
             print('Optimization converged successfully.')
         else: 
@@ -205,6 +250,9 @@ def checkISFS(Atoms,model:str,answerlist):
                 out_t[i-1] = True
             else:
                 out_t[i-1] = False
+        temp=out_t[-1]
+        out_t[-1]=out_t[-2]
+        out_t[-2]=temp
         return out_t
     if 'Add' in Reaction:
         if model == 'FS':
@@ -264,12 +312,23 @@ for name in folderpath:
         datadict4check = json.load(j)
     answerlist = datadict4check[name]#File name ：[Reaction,bond changed atoms(bid,eid),mainBodyIdx,subBodyIdx,bonded smiles,broken smiles]
     print(answerlist[0])#
-    if os.path.exists(f'{p0}/IntermediateProcess/optimized_IS_FS/IS_opt.vasp') and os.path.exists(f'{p0}/IntermediateProcess/optimized_IS_FS/FS_opt.vasp'):
+    if os.path.exists(f'{p0}/IntermediateProcess/optimized_IS_FS/IS_opt.vasp'):
+        IS = read(f'{p0}/IntermediateProcess/optimized_IS_FS/IS_opt.vasp')
+        IS.calc = calc
+    else:
+        IS = read_data(f'{path}/{name}/IS.vasp','IS',answerlist,f'{path}/{name}/')
+    if os.path.exists(f'{p0}/IntermediateProcess/optimized_IS_FS/FS_opt.vasp'):
+        FS = read(f'{p0}/IntermediateProcess/optimized_IS_FS/FS_opt.vasp')
+        FS.calc = calc
+    else:
+        FS = read_data(f'{path}/{name}/FS.vasp','FS',answerlist,f'{path}/{name}/')
+
+    '''if os.path.exists(f'{p0}/IntermediateProcess/optimized_IS_FS/IS_opt.vasp') and os.path.exists(f'{p0}/IntermediateProcess/optimized_IS_FS/FS_opt.vasp'):
         IS, FS = read(f'{p0}/IntermediateProcess/optimized_IS_FS/IS_opt.vasp'), read(f'{p0}/IntermediateProcess/optimized_IS_FS/FS_opt.vasp')
         IS.calc = calc
         FS.calc = calc
     else:
-        IS, FS = read_data(f'{path}/{name}/IS.vasp','IS',answerlist,f'{path}/{name}/IntermediateProcess/optimized_IS_FS/'), read_data(f'{path}/{name}/FS.vasp','FS',answerlist,f'{path}/{name}/IntermediateProcess/optimized_IS_FS/')
+        IS, FS = read_data(f'{path}/{name}/IS.vasp','IS',answerlist,f'{path}/{name}/'), read_data(f'{path}/{name}/FS.vasp','FS',answerlist,f'{path}/{name}/')'''
 
     IS_check = checkISFS(IS,'IS',answerlist)
     FS_check = checkISFS(FS,'FS',answerlist)

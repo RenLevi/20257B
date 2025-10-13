@@ -15,12 +15,12 @@ for i in range(len(foldersplitlist)):
         #'record':'/work/home/ac877eihwp/renyq/20250828TT/test/opt/system/record_adscheck.json',
         'folderpath':fl
         }
-    os.makedirs(name=f'test/jobsub/RDA_S/{i}',exist_ok=True)
-    with open(f'test/jobsub/RDA_S/{i}/config.json','w') as j:
+    os.makedirs(name=f'test/jobsub/RDA_Spre/{i}',exist_ok=True)
+    with open(f'test/jobsub/RDA_Spre/{i}/config.json','w') as j:
         json.dump(data,j)
-    sp.copyFiles('preSearchTS/opt4SearchTS.py',f'test/jobsub/RDA_S_TS/{i}')
-    sp.copyFiles('preSearchTS/jobpre4TS.sh',f'test/jobsub/RDA_S_TS/{i}')
-    sp.run_command_in_directory(directory=f'test/jobsub/RDA_S_TS/{i}',command='sbatch jobpre4TS.sh')
+    sp.copyFiles('preSearchTS/opt4SearchTS.py',f'test/jobsub/RDA_Spre/{i}')
+    sp.copyFiles('preSearchTS/jobpre4TS.sh',f'test/jobsub/RDA_Spre/{i}')
+    sp.run_command_in_directory(directory=f'test/jobsub/RDA_Spre/{i}',command='sbatch jobpre4TS.sh')
 
     
 

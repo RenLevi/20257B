@@ -1,13 +1,8 @@
 import preSearchTS.readReaction as rR
 import os
-import shutil
 import json
 from ase.io import read
-import site_positions.SearchSite as SS
-from ase.build import hcp0001
-from preSearchTS.JmolNN import bond
 import numpy as np
-from scipy.spatial import cKDTree
 '''
     #:注释
     #...:用于测试，可以删除
@@ -53,27 +48,6 @@ def collect_Alljson(path_d,path_test,check_json,batch):
         return ValueError('some record loss!!!')
     else:
         pass
-def find_nearest_neighbor_kdtree(points, query_point):
-    """
-    使用KDTree查找最近邻点
-    
-    参数:
-    points: 点集，形状为(n, 3)的numpy数组
-    query_point: 查询点，形状为(3,)的numpy数组
-    
-    返回:
-    nearest_point: 最近的点
-    nearest_index: 最近点的索引
-    distance: 距离
-    """
-    # 构建KDTree
-    tree = cKDTree(points)
-    
-    # 查询最近邻
-    distance, nearest_index = tree.query(query_point)
-    nearest_point = points[nearest_index]
-    
-    return nearest_point, nearest_index, distance
 class molfile():
     def __init__(self,checkdict,name,path_test,slab = None):
 

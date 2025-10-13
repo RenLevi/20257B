@@ -172,15 +172,15 @@ def directionality_sigma(ris,rfs,rcopt,r1):
     output = sigmaCopt(diff_is,diff_fs)
     return output, diff_is, diff_fs
 # D_criteria
-def D_criteria(delta_dIS,delta_dFS):
+def D_criteria(delta_dIS,delta_dFS,limit=0.05):
     """
     计算D_criteria
     """
     if delta_dIS*delta_dFS > 0:
         print("diff_IS和diff_FS符号相同,满足D_criteria")
         return True
-    elif np.abs(delta_dIS) < 0.05 and np.abs(delta_dFS) < 0.05:
-        print("diff_IS和diff_FS绝对值均小于0.05,满足D_criteria")   
+    elif np.abs(delta_dIS) < limit and np.abs(delta_dFS) < limit:
+        print(f"diff_IS和diff_FS绝对值均小于{limit},满足D_criteria")   
         return True
     else:
         print("不满足D_criteria")
@@ -246,8 +246,8 @@ class RDA_S():
                                  logfile=f'{path_IP}step1/R1Copt_sella.log', 
                                  trajectory=f'{path_IP}step1/R1Copt_sella.traj')
             Sella_Search.run(fmax=0.05)
-            write(f'{path_IP}/result/TS_RDA_D_combine_Sella.vasp', QTS)
-            print("过渡态搜索完成,结果保存在TS_RDA_D_combine_Sella.vasp")
+            write(f'{path_IP}results/TS_RDA_S_R1Copt.vasp', QTS)
+            print("过渡态搜索完成,结果保存在TS_RDA_S_R1Copt.vasp")
             return R1Copt,QTS
         else:
             print("R1Copt不满足D_criteria,继续调整IS和FS")
@@ -285,10 +285,12 @@ class RDA_S():
                                                                             energy_threshold=0.05,
                                                                             max_steps=100,
                                                                             trajectory_file=None)
-                    write(f'{path_IP}/step2/Ri_beta_{beta*10}.vasp', RiCopt)
+                    write(f'{path_IP}/step2/Ri_beta_{int(beta*10)}.vasp', RiCopt)
                     sigma_Ri,diff_IS_Ri,diff_FS_Ri = directionality_sigma(R1Copt,Rref,RiCopt,Ri)
                     print(f"RiCopt的diff_IS: {diff_IS_Ri}; diff_FS: {diff_FS_Ri}")
                     BETAlist.append(beta)
+                    if D_criteria(diff_IS_Ri,diff_FS_Ri,limit=0.01):
+                        break
                 Rdc_beta =  copy.deepcopy(BETAlist[-1])
                 Rdnc_beta = copy.deepcopy(BETAlist[-2])
             else:
@@ -303,10 +305,12 @@ class RDA_S():
                                                                             energy_threshold=0.05,
                                                                             max_steps=100,
                                                                             trajectory_file=None)
-                    write(f'{path_IP}/step2/Ri_beta_{beta*10}.vasp', RiCopt)
+                    write(f'{path_IP}/step2/Ri_beta_{int(beta*10)}.vasp', RiCopt)
                     sigma_Ri,diff_IS_Ri,diff_FS_Ri = directionality_sigma(R1Copt,Rref,RiCopt,Ri)
                     print(f"RiCopt的diff_IS: {diff_IS_Ri}; diff_FS: {diff_FS_Ri}")
                     BETAlist.append(beta)
+                    if D_criteria(diff_IS_Ri,diff_FS_Ri,limit=0.01):
+                        break
                 Rdc_beta =  copy.deepcopy(BETAlist[-2])
                 Rdnc_beta = copy.deepcopy(BETAlist[-1])
             print('-'*50)
@@ -379,12 +383,15 @@ for name in folderpath:
         datadict4check = json.load(j)
     answerlist = datadict4check[name]#File name ：[Reaction,bond changed atoms(bid,eid),mainBodyIdx,subBodyIdx,bonded smiles,broken smiles]
     print(answerlist[0])#
-    if os.path.exists(f'{p0}/IntermediateProcess'):
-        SearchTS = RDA_S(ISfile=f'{path}/{name}/IntermediateProcess/optimized_IS_FS/IS_opt.vasp', FSfile=f'{path}/{name}/IntermediateProcess/optimized_IS_FS/FS_opt.vasp', path=p0)
-        SearchTS.opt(calc)
-        SearchTS.run(calc)
+    if os.path.exists(f'{p0}/IntermediateProcess'): 
+        if check_file_exists(f'{p0}/IntermediateProcess/results/','TS_RDA_S_Rdnc.vasp') or check_file_exists(f'{p0}/IntermediateProcess/results/','TS_RDA_S_RdncCopt.vasp') or check_file_exists(f'{p0}/IntermediateProcess/results/','TS_RDA_S_R1Copt.vasp'):
+            pass
+        else:
+            SearchTS = RDA_S(ISfile=f'{path}/{name}/IntermediateProcess/optimized_IS_FS/IS_opt.vasp', FSfile=f'{path}/{name}/IntermediateProcess/optimized_IS_FS/FS_opt.vasp', path=p0)
+            SearchTS.opt(calc)
+            SearchTS.run(calc)
     else:
-        pass
+        ValueError('Run IS/FS optimization first')
 '''------------------------------------------------------'''
 
 '''if (__name__ == "__main__"):

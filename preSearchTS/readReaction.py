@@ -284,10 +284,10 @@ class readreaction():
         '''
         if reactiontype == 'Add':
             CB = CB2
-            self.FScheck = CB2.poscar
+            self.FS = CB2.poscar
         else:
             CB = CB1
-            self.FScheck = CB1.poscar
+            self.FS = CB1.poscar
         if bool(CB.adsorption) == False:
             noads = True
         else:
@@ -298,43 +298,16 @@ class readreaction():
         self.group1 = notmoveGroupIdx#main body
         self.group2 = moveGroupIdx#sub body
         self.changebondatom = (Bid_infile,Eid_infile)
-        newmol = adjust_distance(CB,notmove,notmoveGroupIdx,move,moveGroupIdx,alpha=0.5,noads=noads)
+        newmol = adjust_distance(CB,notmove,notmoveGroupIdx,move,moveGroupIdx,alpha=0,noads=noads)
         if check_molecule_over_surface(newmol) == False:
                 for i in range(1,20):
-                    newmol = adjust_distance(CB,notmove,notmoveGroupIdx,move,moveGroupIdx,alpha=0.5,delta=0.1*i,noads=noads)
+                    newmol = adjust_distance(CB,notmove,notmoveGroupIdx,move,moveGroupIdx,alpha=0,delta=0.1*i,noads=noads)
                     if check_molecule_over_surface(newmol) == True:
                         print('higher over surface')
                         break
-        self.IScheck = newmol
+        self.IS = newmol
         self.check =smilesFORcheck 
         self.split =smilesFORspilt
-    def buildISFS(self,mf,site,slab):
-        g14fs = self.FScheck[self.group1]
-        g24fs = self.FScheck[self.group2]
-        self.FS = slab+g14fs+g24fs
-        if mf == None:
-            ValueError('Please build opt database first')
-        else:pass
-        IScheck = copy.deepcopy(self.IScheck)
-        g1 = IScheck[self.group1]
-        g2 = IScheck[self.group2]
-        cbg1 = checkBonds()
-        cbg1.input(g1)
-        cbg1.AddAtoms()
-        cbg1.CheckAllBonds()
-        cbg2 = checkBonds()
-        cbg2.input(g2)
-        cbg2.AddAtoms()
-        cbg2.CheckAllBonds()
-        BMSg1 = BuildMol2Smiles(cbg1)
-        BMSg1.build()
-        BMSg2 = BuildMol2Smiles(cbg2)
-        BMSg2.build()
-        if mf.get(BMSg1.smiles) == False or mf.get(BMSg2.smiles) == False:
-            return ValueError(f'Cannot find the molecule in database, please check the smiles!\n {BMSg1.smiles} or {BMSg2.smiles}')
-        else:pass
-        
-
     def save(self,path,format):
         # 保存为POSCAR文件（VASP格式）
         if format=='poscar' or 'POSCAR' or 'vasp':
