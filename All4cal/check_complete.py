@@ -47,10 +47,9 @@ with open (f'{p1}{fj1}','r') as j:
     FJdict = json.load(j)
 for FN in FJdict:
     completePath=f'{p1}{FN}{subp}'
-    ffl1 = find_file_listdir(completePath,'TS_RDA_S_Rdnc.vasp')
-    ffl2 = find_file_listdir(completePath,'TS_RDA_S_RdncCopt.vasp')
-    ffl3 = find_file_listdir(completePath,'TS_RDA_S_R1Copt.vasp')
-    if ffl1 == True or ffl2 == True or ffl3 ==  True:
+    ffl1 = find_file_listdir(completePath,'TS_RDA_S_RdncCopt.xyz')
+    ffl2 = find_file_listdir(completePath,'TS_RDA_S_R1Copt.xyz')
+    if ffl1 == True or ffl2 == True:
         FFL=FFL+1
     else:
         FFL=FFL
