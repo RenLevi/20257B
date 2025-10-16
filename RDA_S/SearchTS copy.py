@@ -9,9 +9,7 @@ import os
 from sella import Sella
 from nequip.ase import NequIPCalculator
 import json
-import ase
-from ase.vibrations import Vibrations
-from pathlib import Path
+
 def check_file_exists(folder_path, filename):
     """
     检查指定文件夹中是否存在某个文件
@@ -201,24 +199,6 @@ def D_criteria(delta_dIS,delta_dFS,limit=0.05):
     else:
         print("不满足D_criteria")
         return False 
-def freq_cal(atoms,p):
-    vib = Vibrations(atoms, name = 'freq_calculation', delta = 0.01, nfree = 2)
-    vib.run()
-    vib.summary(log=f'{p}/frequency_summary.txt')
-    frequencies = vib.get_frequencies()
-    #print("\n振动频率 (cm⁻¹):")
-    return frequencies
-def get_single_filename(folder_path):
-    """获取文件夹中唯一的文件名"""
-    all_items = os.listdir(folder_path)
-    files = [item for item in all_items if os.path.isfile(os.path.join(folder_path, item))]
-    
-    if len(files) == 1:
-        return files[0]
-    elif len(files) == 0:
-        return "文件夹为空"
-    else:
-        return f"文件夹中有 {len(files)} 个文件，不止一个文件"
 class RDA_S():
     def __init__(self,ISfile,FSfile,path):
         self.IS = read(ISfile)
@@ -283,7 +263,7 @@ class RDA_S():
             Sella_Search.run(fmax=0.05)
             write(f'{path_IP}results/TS_RDA_S_R1Copt.xyz', QTS)
             print("过渡态搜索完成,结果保存在TS_RDA_S_R1Copt.xyz")
-            return QTS
+            return R1Copt,QTS
         else:
             print("R1Copt不满足D_criteria,继续调整IS和FS")
             print('-'*50)
@@ -309,10 +289,10 @@ class RDA_S():
             print(f"R2Copt的diff_IS: {diff_IS_R2}; diff_FS: {diff_FS_R2}")
             beta = 0.5
             BETAlist = []
-            if sigma_R2 == 'ref' :
+            if sigma_R2 != 'alpha' :
                 BETAlist.append(beta)
                 sigma_Ri = copy.deepcopy(sigma_R2)
-                while sigma_Ri == 'ref' or sigma_Ri == 'Nondirectional':
+                while sigma_Ri != 'alpha':
                     beta = beta - 0.1
                     Ri = interpolate_structure(R1Copt,Rref,fraction=beta,output_file=f'{path_IP}/step2/R2_{int(beta*10)}.vasp')
                     print(f"当前beta: {beta}")
@@ -325,13 +305,15 @@ class RDA_S():
                     sigma_Ri,diff_IS_Ri,diff_FS_Ri = directionality_sigma(R1Copt,Rref,RiCopt,Ri,outshow=['alpha','ref'])
                     print(f"RiCopt的diff_IS: {diff_IS_Ri}; diff_FS: {diff_FS_Ri}")
                     BETAlist.append(beta)
+                    if np.abs(diff_IS_Ri) <=0.01 and np.abs(diff_FS_Ri) <=0.01:
+                        break
                     assert beta >= 0 , "beta < 0 ,程序终止!"
-                #Rdc_beta =  copy.deepcopy(BETAlist[-1])
+                Rdc_beta =  copy.deepcopy(BETAlist[-1])
                 Rdnc_beta = copy.deepcopy(BETAlist[-2])
-            elif sigma_R2 == 'alpha':
+            else:
                 sigma_Ri = copy.deepcopy(sigma_R2)
                 BETAlist.append(beta)
-                while sigma_Ri == 'alpha' or sigma_Ri == 'Nondirectional':
+                while sigma_Ri == 'alpha':
                     beta = beta + 0.1
                     Ri = interpolate_structure(R1Copt,Rref,fraction=beta,output_file=f'{path_IP}/step2/R2_{int(beta*10)}.vasp')
                     print(f"当前beta: {beta}")
@@ -344,24 +326,15 @@ class RDA_S():
                     sigma_Ri,diff_IS_Ri,diff_FS_Ri = directionality_sigma(R1Copt,Rref,RiCopt,Ri,outshow=['alpha','ref'])
                     print(f"RiCopt的diff_IS: {diff_IS_Ri}; diff_FS: {diff_FS_Ri}")
                     BETAlist.append(beta)
+                    if np.abs(diff_IS_Ri) <=0.01 and np.abs(diff_FS_Ri) <=0.01:
+                        break
                     assert  beta <= 1, "beta > 1,程序终止!"
-                #Rdc_beta =  copy.deepcopy(BETAlist[-2])
+                Rdc_beta =  copy.deepcopy(BETAlist[-2])
                 Rdnc_beta = copy.deepcopy(BETAlist[-1])
-            else:
-                print("R2Copt满足D_criteria")
-                print('Start Sella')
-                QTS = copy.deepcopy(R2Copt)
-                Sella_Search = Sella(QTS, 
-                                    logfile=f'{path_IP}step1/R1Copt_sella.log', 
-                                    trajectory=f'{path_IP}step1/R1Copt_sella.traj')
-                Sella_Search.run(fmax=0.05)
-                write(f'{path_IP}results/TS_RDA_S_R2Copt.xyz', QTS)
-                print("过渡态搜索完成,结果保存在TS_RDA_S_R2Copt.xyz")
-                return QTS
             print('-'*50)
             print("Step 3:生成初猜过渡态R3   <R_gamma>")
-            print(f"Rdnc_beta: {Rdnc_beta}")
-            #Rdc = interpolate_structure(R1Copt,Rref,fraction=Rdc_beta, output_file=f'{path_IP}step2/Rdc.vasp')
+            print(f"Rdc_beta: {Rdc_beta}, Rdnc_beta: {Rdnc_beta}")
+            Rdc = interpolate_structure(R1Copt,Rref,fraction=Rdc_beta, output_file=f'{path_IP}step2/Rdc.vasp')
             Rdnc = interpolate_structure(R1Copt,Rref,fraction=Rdnc_beta, output_file=f'{path_IP}step2/Rdnc.vasp')
             RdncCopt, energy_history = optimize_with_energy_criterion(Rdnc, calc, 
                                                                     energy_threshold=0.05,
@@ -377,6 +350,7 @@ class RDA_S():
                 Rref = copy.deepcopy(RFS)
             else:
                 raise ValueError("sigma_check==Nondirectional,程序终止!")
+
             write(f'{path_IP}step3/Rref.vasp', Rref)
             gamma = 0.1
             R3 = interpolate_structure(RdncCopt,Rref,fraction=0.1,output_file=f'{path_IP}step3/R3_1.vasp')
@@ -395,54 +369,12 @@ class RDA_S():
             Sella_Search.run(fmax=0.05)
             write(f'{path_IP}results/TS_RDA_S_RdncCopt.xyz', QTS)
             print("过渡态搜索完成,结果保存在TS_RDA_S_RdncCopt.xyz")
-            return QTS
 
 '''------------------------------------------------------'''
 
 model_path = '/work/home/ac877eihwp/renyq/prototypeModel.pth'
+p0='path of the folder including IS & FS'
 calc = NequIPCalculator.from_deployed_model(model_path, device='cpu')
-with open('config.json','r') as j:
-    data = json.load(j)
-path = data['path']
-folderpath=data['folderpath']
-for name in folderpath:
-    p0 = f'{path}/{name}'
-    with open (f'{path}/foldername.json','r') as j:
-        datadict4check = json.load(j)
-    answerlist = datadict4check[name]#File name ：[Reaction,bond changed atoms(bid,eid),mainBodyIdx,subBodyIdx,bonded smiles,broken smiles]
-    print(answerlist[0])#
-    if os.path.exists(f'{p0}/IntermediateProcess'): 
-        if check_file_exists(f'{p0}/IntermediateProcess/results/','TS_RDA_S_R2Copt.xyz') or check_file_exists(f'{p0}/IntermediateProcess/results/','TS_RDA_S_RdncCopt.vasp') or check_file_exists(f'{p0}/IntermediateProcess/results/','TS_RDA_S_R1Copt.vasp'):
-            pass
-        else:
-            SearchTS = RDA_S(ISfile=f'{path}/{name}/IntermediateProcess/optimized_IS_FS/IS_opt.vasp', FSfile=f'{path}/{name}/IntermediateProcess/optimized_IS_FS/FS_opt.vasp', path=p0)
-            SearchTS.opt(calc)
-            SearchTS.run(calc)
-    else:
-        ValueError('Run IS/FS optimization first')
-    if check_file_exists(f'{p0}/','frequency_summary.txt')==False:
-        fn = get_single_filename(f'{p0}/IntermediateProcess/results/')
-        atoms = read(f'{p0}/IntermediateProcess/results/{fn}')
-        atoms.calc=calc
-        indices_to_fix = [atom.index for atom in atoms if atom.symbol == 'Ru']
-        constraint = FixAtoms(indices=indices_to_fix)
-        atoms.set_constraint(constraint)
-        freq = freq_cal(atoms,p0)
-    else:
-        pass
-
-
-
-            
-
-
-            
-            
-            
-                
-
-
-        
-    
-
-    
+SearchTS = RDA_S(ISfile=f'IS.vasp', FSfile=f'FS.vasp', path=p0)
+SearchTS.opt(calc)
+SearchTS.run(calc)
