@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH -J sequential_opt       # 作业名
+#SBATCH -J mlp_freqcalc         # 作业名
 #SBATCH -p wzhcnormal           # 队列名
 #SBATCH -N 1                    # 节点数
 #SBATCH --ntasks-per-node=28    # 每节点进程数

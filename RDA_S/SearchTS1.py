@@ -81,7 +81,7 @@ def optimize_with_energy_criterion(model, calculator, energy_threshold=1e-2,
     # 设置计算器
     atoms.calc = calculator
     # 初始化优化器
-    optimizer = BFGS(atoms)
+    optimizer = FIRE(atoms)
     # 记录能量历史
     energy_history = []
     # 手动执行优化步骤
@@ -263,7 +263,7 @@ class RDA_S():
             Sella_Search.run(fmax=0.05)
             write(f'{path_IP}results/TS_RDA_S_R1Copt.xyz', QTS)
             print("过渡态搜索完成,结果保存在TS_RDA_S_R1Copt.xyz")
-            return R1Copt,QTS
+            return QTS
         else:
             print("R1Copt不满足D_criteria,继续调整IS和FS")
             print('-'*50)
@@ -289,10 +289,10 @@ class RDA_S():
             print(f"R2Copt的diff_IS: {diff_IS_R2}; diff_FS: {diff_FS_R2}")
             beta = 0.5
             BETAlist = []
-            if sigma_R2 != 'alpha' :
+            if sigma_R2 == 'ref' :
                 BETAlist.append(beta)
                 sigma_Ri = copy.deepcopy(sigma_R2)
-                while sigma_Ri != 'alpha':
+                while sigma_Ri == 'ref' or sigma_Ri == 'Nondirectional':
                     beta = beta - 0.1
                     Ri = interpolate_structure(R1Copt,Rref,fraction=beta,output_file=f'{path_IP}/step2/R2_{int(beta*10)}.vasp')
                     print(f"当前beta: {beta}")
@@ -305,15 +305,13 @@ class RDA_S():
                     sigma_Ri,diff_IS_Ri,diff_FS_Ri = directionality_sigma(R1Copt,Rref,RiCopt,Ri,outshow=['alpha','ref'])
                     print(f"RiCopt的diff_IS: {diff_IS_Ri}; diff_FS: {diff_FS_Ri}")
                     BETAlist.append(beta)
-                    if np.abs(diff_IS_Ri) <=0.01 and np.abs(diff_FS_Ri) <=0.01:
-                        break
                     assert beta >= 0 , "beta < 0 ,程序终止!"
-                Rdc_beta =  copy.deepcopy(BETAlist[-1])
+                #Rdc_beta =  copy.deepcopy(BETAlist[-1])
                 Rdnc_beta = copy.deepcopy(BETAlist[-2])
-            else:
+            elif sigma_R2 == 'alpha':
                 sigma_Ri = copy.deepcopy(sigma_R2)
                 BETAlist.append(beta)
-                while sigma_Ri == 'alpha':
+                while sigma_Ri == 'alpha' or sigma_Ri == 'Nondirectional':
                     beta = beta + 0.1
                     Ri = interpolate_structure(R1Copt,Rref,fraction=beta,output_file=f'{path_IP}/step2/R2_{int(beta*10)}.vasp')
                     print(f"当前beta: {beta}")
@@ -326,15 +324,24 @@ class RDA_S():
                     sigma_Ri,diff_IS_Ri,diff_FS_Ri = directionality_sigma(R1Copt,Rref,RiCopt,Ri,outshow=['alpha','ref'])
                     print(f"RiCopt的diff_IS: {diff_IS_Ri}; diff_FS: {diff_FS_Ri}")
                     BETAlist.append(beta)
-                    if np.abs(diff_IS_Ri) <=0.01 and np.abs(diff_FS_Ri) <=0.01:
-                        break
                     assert  beta <= 1, "beta > 1,程序终止!"
-                Rdc_beta =  copy.deepcopy(BETAlist[-2])
+                #Rdc_beta =  copy.deepcopy(BETAlist[-2])
                 Rdnc_beta = copy.deepcopy(BETAlist[-1])
+            else:
+                print("R2Copt满足D_criteria")
+                print('Start Sella')
+                QTS = copy.deepcopy(R2Copt)
+                Sella_Search = Sella(QTS, 
+                                    logfile=f'{path_IP}step1/R1Copt_sella.log', 
+                                    trajectory=f'{path_IP}step1/R1Copt_sella.traj')
+                Sella_Search.run(fmax=0.05)
+                write(f'{path_IP}results/TS_RDA_S_R2Copt.xyz', QTS)
+                print("过渡态搜索完成,结果保存在TS_RDA_S_R2Copt.xyz")
+                return QTS
             print('-'*50)
             print("Step 3:生成初猜过渡态R3   <R_gamma>")
-            print(f"Rdc_beta: {Rdc_beta}, Rdnc_beta: {Rdnc_beta}")
-            Rdc = interpolate_structure(R1Copt,Rref,fraction=Rdc_beta, output_file=f'{path_IP}step2/Rdc.vasp')
+            print(f"Rdnc_beta: {Rdnc_beta}")
+            #Rdc = interpolate_structure(R1Copt,Rref,fraction=Rdc_beta, output_file=f'{path_IP}step2/Rdc.vasp')
             Rdnc = interpolate_structure(R1Copt,Rref,fraction=Rdnc_beta, output_file=f'{path_IP}step2/Rdnc.vasp')
             RdncCopt, energy_history = optimize_with_energy_criterion(Rdnc, calc, 
                                                                     energy_threshold=0.05,
@@ -350,7 +357,6 @@ class RDA_S():
                 Rref = copy.deepcopy(RFS)
             else:
                 raise ValueError("sigma_check==Nondirectional,程序终止!")
-
             write(f'{path_IP}step3/Rref.vasp', Rref)
             gamma = 0.1
             R3 = interpolate_structure(RdncCopt,Rref,fraction=0.1,output_file=f'{path_IP}step3/R3_1.vasp')
@@ -369,11 +375,12 @@ class RDA_S():
             Sella_Search.run(fmax=0.05)
             write(f'{path_IP}results/TS_RDA_S_RdncCopt.xyz', QTS)
             print("过渡态搜索完成,结果保存在TS_RDA_S_RdncCopt.xyz")
+            return QTS
 
 '''------------------------------------------------------'''
 
 model_path = '/work/home/ac877eihwp/renyq/prototypeModel.pth'
-p0='path of the folder including IS & FS'
+p0='/work/home/ac877eihwp/renyq/20250828TT/test/RDA_S/[H]C_[H]CO'
 calc = NequIPCalculator.from_deployed_model(model_path, device='cpu')
 SearchTS = RDA_S(ISfile=f'IS.vasp', FSfile=f'FS.vasp', path=p0)
 SearchTS.opt(calc)

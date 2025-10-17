@@ -83,7 +83,7 @@ def optimize_with_energy_criterion(model, calculator, energy_threshold=1e-2,
     # 设置计算器
     atoms.calc = calculator
     # 初始化优化器
-    optimizer = BFGS(atoms)
+    optimizer = FIRE(atoms)
     # 记录能量历史
     energy_history = []
     # 手动执行优化步骤
@@ -420,7 +420,7 @@ for name in folderpath:
             SearchTS.run(calc)
     else:
         ValueError('Run IS/FS optimization first')
-    if check_file_exists(f'{p0}/','frequency_summary.txt')==False:
+    '''if check_file_exists(f'{p0}/','frequency_summary.txt')==False:
         fn = get_single_filename(f'{p0}/IntermediateProcess/results/')
         atoms = read(f'{p0}/IntermediateProcess/results/{fn}')
         atoms.calc=calc
@@ -429,7 +429,7 @@ for name in folderpath:
         atoms.set_constraint(constraint)
         freq = freq_cal(atoms,p0)
     else:
-        pass
+        pass'''
 
 
 
