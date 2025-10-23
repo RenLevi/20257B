@@ -58,7 +58,12 @@ def interpolate_structure(initial_model, final_model, fraction=0.5, output_file=
     
     return new_structure
 # 计算两组结构的欧氏距离
-def Euclidean_distance(R1:Atoms, R2:Atoms):
+def Euclidean_distance(R1:Atoms,idx):
+    a1 = idx[0]
+    a2 = idx[1]
+    d1 = R1.get_distance(a1,a2)
+    return d1
+def Euclidean_distance_old(R1:Atoms, R2:Atoms):
     """
     计算两组结构的欧氏距离
     """
@@ -145,85 +150,58 @@ def plot_energy_convergence(energy_history, threshold):
     plt.savefig('energy_convergence.png', dpi=300)
     plt.show()
 #计算方向性
-def sigmaCopt(delta_dIS,delta_dFS,output = None):
+def sigmaCopt(delta_d,output = None,limit = 0.01):
     """
     output=[dc,dnc]
     计算sigmaCopt
     """
     if output == None:
-        if delta_dIS < 0 and delta_dFS > 0:
+        if delta_d >= limit:
             out = 'IS'
             print("directionality sigma = IS")
-        elif delta_dIS > 0 and delta_dFS < 0:
+        elif delta_d <= limit:
             out = 'FS'
             print("directionality sigma = FS")
-        elif delta_dIS*delta_dFS > 0:
+        else:
             out = 'Nondirectional'
             print("directionality sigma = Nondirectional")
-        else:
-            ValueError("Error in sigmaCopt calculation!")
         return out
     else:
-        if delta_dIS < 0 and delta_dFS > 0:
+        if delta_d >= limit:
             out = output[0]
             print(f"directionality sigma = {out}")
-        elif delta_dIS > 0 and delta_dFS < 0:
+        elif delta_d <= limit:
             out = output[1]
             print(f"directionality sigma = {out}")
-        elif delta_dIS*delta_dFS > 0:
+        else:
             out = 'Nondirectional'
             print("directionality sigma = Nondirectional")
-        else:
-            ValueError("Error in sigmaCopt calculation!")
         return out
     
-def directionality_sigma(ris,rfs,rcopt,r1,outshow=None):
+def directionality_sigma(ris,rfs,rcopt,r1,idx,outshow=None):
     """
     sigma_Ri,diff_IS_Ri,diff_FS_Ri = directionality_sigma(R1Copt,Rref,RiCopt,Ri)
     计算delta_dIS和delta_dFS
     计算方向性
     """
-    diff_is = Euclidean_distance(rcopt,ris) - Euclidean_distance(r1,ris)
-    diff_fs = Euclidean_distance(rcopt,rfs) - Euclidean_distance(r1,rfs)
-    output = sigmaCopt(diff_is,diff_fs,outshow)
-    return output, diff_is, diff_fs
-# D_criteria
-def D_criteria(delta_dIS,delta_dFS,limit=0.05):
-    """
-    计算D_criteria
-    """
-    if delta_dIS*delta_dFS > 0:
-        print("diff_IS和diff_FS符号相同,满足D_criteria")
-        return True
-    elif np.abs(delta_dIS) < limit and np.abs(delta_dFS) < limit:
-        print(f"diff_IS和diff_FS绝对值均小于{limit},满足D_criteria")   
-        return True
+    dis,dfs,dcopt,d1=Euclidean_distance(ris,idx),Euclidean_distance(rfs,idx),Euclidean_distance(rcopt,idx),Euclidean_distance(r1,idx)
+    if dis>dfs:
+        ini = dis
+        fin = dfs
     else:
-        print("不满足D_criteria")
-        return False 
-def freq_cal(atoms,p):
-    vib = Vibrations(atoms, name = 'freq_calculation', delta = 0.01, nfree = 2)
-    vib.run()
-    vib.summary(log=f'{p}/frequency_summary.txt')
-    frequencies = vib.get_frequencies()
-    #print("\n振动频率 (cm⁻¹):")
-    return frequencies
-def get_single_filename(folder_path):
-    """获取文件夹中唯一的文件名"""
-    all_items = os.listdir(folder_path)
-    files = [item for item in all_items if os.path.isfile(os.path.join(folder_path, item))]
-    
-    if len(files) == 1:
-        return files[0]
-    elif len(files) == 0:
-        return "文件夹为空"
-    else:
-        return f"文件夹中有 {len(files)} 个文件，不止一个文件"
+        ini = dfs
+        fin = dis
+    if d1<=ini and dcopt<=ini and d1>=fin and dcopt>=fin:
+        deltad=dcopt-d1
+    else:return ValueError('trash'+'!'*50)
+    output = sigmaCopt(deltad,output=outshow)
+    return output
 class RDA_S():
-    def __init__(self,ISfile,FSfile,path):
+    def __init__(self,ISfile,FSfile,path,idx):
         self.IS = read(ISfile)
         self.FS = read(FSfile)
         self.path = path
+        self.idx = idx
         if not os.path.exists(f'{self.path}/IntermediateProcess'):
             os.makedirs(f'{self.path}/IntermediateProcess')
             os.mkdir(f'{self.path}/IntermediateProcess/step1')
@@ -254,6 +232,7 @@ class RDA_S():
             self.optFS = atoms2
             return atoms1, atoms2
     def run(self, calculator,fix_indices=list(range(32))):
+        idx = self.idx
         # 线性插值生成中间结构
         RIS = self.optIS
         RFS = self.optFS
@@ -270,11 +249,10 @@ class RDA_S():
                                                                         max_steps=100, 
                                                                         trajectory_file=f'{path_IP}step1/R1Copt.traj',
                                                                         log_file=f'{path_IP}step1/R1Copt.log')
-        sigma_R1,diff_IS,diff_FS = directionality_sigma(RIS,RFS,R1Copt,R1)
+        sigma_R1 = directionality_sigma(RIS,RFS,R1Copt,R1,idx)
         write(f'{path_IP}step1/R1Copt.xyz', R1Copt)#
-        print(f"R1Copt的diff_IS: {diff_IS}; diff_FS: {diff_FS}")
-        if D_criteria(diff_IS,diff_FS) == True:
-            print("R1Copt满足D_criteria")
+        if sigma_R1 == 'Nondirectional':
+            print("R1Copt接近TS")
             print('Start Sella')
             QTS = copy.deepcopy(R1Copt)
             Sella_Search = Sella(QTS, 
@@ -285,15 +263,17 @@ class RDA_S():
             print("过渡态搜索完成,结果保存在TS_RDA_S_R1Copt.xyz")
             return QTS
         else:
-            print("R1Copt不满足D_criteria,继续调整IS和FS")
+            print("R1Copt不接近TS,继续调整IS和FS")
             print('-'*50)
             print("Step 2:生成中间结构R2   <R_beta>")
             if sigma_R1 == 'IS':
                 print("将RFS作为Rref")
                 Rref = copy.deepcopy(RFS)
+                sigma_Rref = 'FS'
             elif sigma_R1 == 'FS':
                 print("将RIS作为Rref")
                 Rref = copy.deepcopy(RIS)
+                sigma_Rref = 'IS'
             else:
                 raise ValueError("sigma_check==Nondirectional,程序终止!")
             write(f'{path_IP}step2/Rref.xyz', Rref)#
@@ -305,14 +285,13 @@ class RDA_S():
                                                                          trajectory_file=f'{path_IP}step2/R2_5_Copt.traj',
                                                                          log_file=f'{path_IP}step2/R2_5_Copt.log')
             write(f'{path_IP}step2/R2_5_Copt.xyz', R2Copt)#
-            sigma_R2,diff_IS_R2,diff_FS_R2 = directionality_sigma(R1Copt,Rref,R2Copt,R2,outshow=['alpha','ref'])
-            print(f"R2Copt的diff_IS: {diff_IS_R2}; diff_FS: {diff_FS_R2}")
+            sigma_R2 = directionality_sigma(R1Copt,Rref,R2Copt,R2,idx)
             beta = 0.5
             BETAlist = []
-            if sigma_R2 == 'ref' :
+            if sigma_R2 == sigma_Rref :
                 BETAlist.append(beta)
                 sigma_Ri = copy.deepcopy(sigma_R2)
-                while sigma_Ri == 'ref' or sigma_Ri == 'Nondirectional':
+                while sigma_Ri == sigma_Rref or sigma_Ri == 'Nondirectional':
                     beta = beta - 0.1
                     Ri = interpolate_structure(R1Copt,Rref,fraction=beta,output_file=f'{path_IP}/step2/R2_{int(beta*10)}.vasp')
                     print(f"当前beta: {beta}")
@@ -322,16 +301,14 @@ class RDA_S():
                                                                             trajectory_file=f'{path_IP}/step2/R2_{int(beta*10)}_Copt.traj',
                                                                             log_file=f'{path_IP}/step2/R2_{int(beta*10)}_Copt.log')
                     write(f'{path_IP}/step2/R2_{int(beta*10)}_Copt.xyz', RiCopt)
-                    sigma_Ri,diff_IS_Ri,diff_FS_Ri = directionality_sigma(R1Copt,Rref,RiCopt,Ri,outshow=['alpha','ref'])
-                    print(f"RiCopt的diff_IS: {diff_IS_Ri}; diff_FS: {diff_FS_Ri}")
+                    sigma_Ri = directionality_sigma(R1Copt,Rref,RiCopt,Ri,idx)
                     BETAlist.append(beta)
                     assert beta >= 0 , "beta < 0 ,程序终止!"
-                #Rdc_beta =  copy.deepcopy(BETAlist[-1])
                 Rdnc_beta = copy.deepcopy(BETAlist[-2])
-            elif sigma_R2 == 'alpha':
+            elif sigma_R2 == sigma_R1:
                 sigma_Ri = copy.deepcopy(sigma_R2)
                 BETAlist.append(beta)
-                while sigma_Ri == 'alpha' or sigma_Ri == 'Nondirectional':
+                while sigma_Ri == sigma_R1 or sigma_Ri == 'Nondirectional':
                     beta = beta + 0.1
                     Ri = interpolate_structure(R1Copt,Rref,fraction=beta,output_file=f'{path_IP}/step2/R2_{int(beta*10)}.vasp')
                     print(f"当前beta: {beta}")
@@ -341,19 +318,17 @@ class RDA_S():
                                                                             trajectory_file=f'{path_IP}/step2/R2_{int(beta*10)}_Copt.traj',
                                                                             log_file=f'{path_IP}/step2/R2_{int(beta*10)}_Copt.log')
                     write(f'{path_IP}/step2/R2_{int(beta*10)}_Copt.xyz', RiCopt)
-                    sigma_Ri,diff_IS_Ri,diff_FS_Ri = directionality_sigma(R1Copt,Rref,RiCopt,Ri,outshow=['alpha','ref'])
-                    print(f"RiCopt的diff_IS: {diff_IS_Ri}; diff_FS: {diff_FS_Ri}")
+                    sigma_Ri = directionality_sigma(R1Copt,Rref,RiCopt,Ri,idx)
                     BETAlist.append(beta)
                     assert  beta <= 1, "beta > 1,程序终止!"
-                #Rdc_beta =  copy.deepcopy(BETAlist[-2])
                 Rdnc_beta = copy.deepcopy(BETAlist[-1])
             else:
-                print("R2Copt满足D_criteria")
+                print("R2Copt接近TS")
                 print('Start Sella')
                 QTS = copy.deepcopy(R2Copt)
                 Sella_Search = Sella(QTS, 
-                                    logfile=f'{path_IP}step2/R2Copt_sella.log', 
-                                    trajectory=f'{path_IP}step2/R2Copt_sella.traj')
+                                    logfile=f'{path_IP}step1/R2Copt_sella.log', 
+                                    trajectory=f'{path_IP}step1/R2Copt_sella.traj')
                 Sella_Search.run(fmax=0.05)
                 write(f'{path_IP}results/TS_RDA_S_R2Copt.xyz', QTS)
                 print("过渡态搜索完成,结果保存在TS_RDA_S_R2Copt.xyz")
@@ -361,7 +336,6 @@ class RDA_S():
             print('-'*50)
             print("Step 3:生成初猜过渡态R3   <R_gamma>")
             print(f"Rdnc_beta: {Rdnc_beta}")
-            #Rdc = interpolate_structure(R1Copt,Rref,fraction=Rdc_beta, output_file=f'{path_IP}step2/Rdc.vasp')
             Rdnc = interpolate_structure(R1Copt,Rref,fraction=Rdnc_beta, output_file=f'{path_IP}step2/Rdnc.vasp')
             RdncCopt, energy_history = optimize_with_energy_criterion(Rdnc, calc, 
                                                                     energy_threshold=0.05,
@@ -372,16 +346,18 @@ class RDA_S():
             if sigma_R1 == 'IS':
                 print("将RIS作为Rref")
                 Rref = copy.deepcopy(RIS)
+                sigma_Rref='IS'
             elif sigma_R1 == 'FS':
                 print("将RFS作为Rref")
                 Rref = copy.deepcopy(RFS)
+                sigma_Rref='FS'
             else:
                 raise ValueError("sigma_check==Nondirectional,程序终止!")
             write(f'{path_IP}step3/Rref.vasp', Rref)
             gamma = 0.1
             R3 = interpolate_structure(RdncCopt,Rref,fraction=0.1,output_file=f'{path_IP}step3/R3_1.vasp')
             Rgamma = copy.deepcopy(R3)
-            while Euclidean_distance(Rgamma,Rref) >= Euclidean_distance(Rdnc,Rref):
+            while Euclidean_distance_old(Rgamma,Rref) >= Euclidean_distance_old(Rdnc,Rref):
                 gamma = gamma + 0.1
                 Rgamma = interpolate_structure(RdncCopt,Rref,fraction=gamma,output_file=f'{path_IP}step3/R3_{int(gamma*10)}.vasp')
                 assert gamma < 1, "gamma  > 1,程序终止!"
@@ -415,7 +391,7 @@ for name in folderpath:
         if check_file_exists(f'{p0}/IntermediateProcess/results/','TS_RDA_S_R2Copt.xyz') or check_file_exists(f'{p0}/IntermediateProcess/results/','TS_RDA_S_RdncCopt.vasp') or check_file_exists(f'{p0}/IntermediateProcess/results/','TS_RDA_S_R1Copt.vasp'):
             pass
         else:
-            SearchTS = RDA_S(ISfile=f'{path}/{name}/IntermediateProcess/optimized_IS_FS/IS_opt.vasp', FSfile=f'{path}/{name}/IntermediateProcess/optimized_IS_FS/FS_opt.vasp', path=p0)
+            SearchTS = RDA_S(ISfile=f'{path}/{name}/IntermediateProcess/optimized_IS_FS/IS_opt.vasp', FSfile=f'{path}/{name}/IntermediateProcess/optimized_IS_FS/FS_opt.vasp', path=p0,idx=answerlist[1])
             SearchTS.opt(calc)
             SearchTS.run(calc)
     else:
