@@ -12,7 +12,7 @@ source ~/.bashrc
 conda activate MLPcal
 
 echo "Start searching TS" | tee -a resLog.out
-python SearchTS_test.py | tee -a resLog.out
+python SearchTS.py | tee -a resLog.out
 echo "" | tee -a resLog.out
 echo "Evaluation finished"
 echo "See resLog.out to check the results"

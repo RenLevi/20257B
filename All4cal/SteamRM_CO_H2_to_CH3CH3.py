@@ -1,22 +1,26 @@
 from rdkit.Chem import AllChem as Chem
 from MEACRNG.CRNG.ReactionNetworkGenerator import SpeciesNode, NetworkGenerator
 from MEACRNG.CRNG.ReactionLibrary.C1ReactionLib import C1OneReactantOneProductReactionLib
+from MEACRNG.CRNG.ReactionLibrary.C2ReactionLib import C2OneReactionOneProductReactionLib
+from MEACRNG.CRNG.ReactionLibrary.CnReactionLib import CnOneReactionOneProductReactionLib
 from MEACRNG.CRNG.ValidMolCheckFuncLibrary.ValidMolCheckFuncLib import CarbonValidMolCheckFunc
 from MEACRNG.Tools.utils import ReactionLibUtils
 from MEACRNG.CRNG.ReactionLibrary.MetaReactions import OneReactantOneProductMetaReation, ReactionType, Reaction
 from MEACRNG.Tools.Smiles2formula import expression_transform
 import os
 # allowed steps,for multi carbon products，use functions in MetaReation or write a new lib
-reactions = ReactionLibUtils.merge_reactions([
 
-    C1OneReactantOneProductReactionLib.reaction_remove_H_on_carbon,
-    C1OneReactantOneProductReactionLib.reaction_add_H_on_carbon,
-    C1OneReactantOneProductReactionLib.reaction_add_OH_on_carbon,
-    C1OneReactantOneProductReactionLib.reaction_add_O_single_bond_on_carbon,
-    C1OneReactantOneProductReactionLib.reaction_remove_first_O_or_OH_on_carbon,
-    C1OneReactantOneProductReactionLib.reaction_remove_second_O_or_OH_on_carbon,
-    C1OneReactantOneProductReactionLib.reaction_remove_H_on_O,
-    C1OneReactantOneProductReactionLib.reaction_add_H_on_the_O,
+reactions = ReactionLibUtils.merge_reactions([
+    CnOneReactionOneProductReactionLib.reaction_add_carbon_species_on_jth_Os,
+    CnOneReactionOneProductReactionLib.reaction_add_carbon_species_on_jth_carbon,
+    CnOneReactionOneProductReactionLib.reaction_add_H_on_carbons,
+    CnOneReactionOneProductReactionLib.reaction_add_OH_on_carbons,
+    CnOneReactionOneProductReactionLib.reaction_add_O_single_bond_on_carbons,
+    CnOneReactionOneProductReactionLib.reaction_add_H_on_the_Os,
+    CnOneReactionOneProductReactionLib.reaction_remove_H_on_carbons,
+    CnOneReactionOneProductReactionLib.reaction_remove_H_on_Os,
+    CnOneReactionOneProductReactionLib.reaction_remove_first_O_or_OH_on_carbons,
+    CnOneReactionOneProductReactionLib.reaction_remove_second_O_or_OH_on_carbon
 ])
 
 # boundary condition check
@@ -24,18 +28,21 @@ check_func = [
     CarbonValidMolCheckFunc.no_more_than_four_bond_in_carbon_check,
     CarbonValidMolCheckFunc.no_more_than_M_bond_in_atom_N_check(n='O',m=2),
     CarbonValidMolCheckFunc.valid_C_O_bond_structure_check_when_only_use_single_CO_bond_simple,
-    CarbonValidMolCheckFunc.num_of_C_and_O_should_smaller_equal_than_3
+    CarbonValidMolCheckFunc.no_more_than_two_carbon_check,
+    CarbonValidMolCheckFunc.num_of_C_and_O_should_smaller_equal_than_4,
+    CarbonValidMolCheckFunc.num_of_CHO_should_bigger_equal_than_1,
+    CarbonValidMolCheckFunc.remove_mol_had_two_groups
+    
 ]
 
 #reactants and results in Smiles，
-CH4 = SpeciesNode(Chem.AddHs(Chem.MolFromSmiles('C')))# 'AddHs' will fill H，eg. C+4H==CH4
+CH3CH3 = SpeciesNode(Chem.AddHs(Chem.MolFromSmiles('CC')))# 'AddHs' will fill H，eg. C+4H==CH4
 CO = SpeciesNode(Chem.MolFromSmiles('CO'))
-#CH3 = SpeciesNode(Chem.MolFromSmiles('[H]C([H])[H]',sanitize=False))# sanitize=False，input smile which keeps H directly.
 
 # set reactant and product
 ng = NetworkGenerator(
     initial_reactants=[CO],
-    final_results=[CH4],
+    final_results=[CH3CH3],
     valid_mol_check_func_list=check_func)
 
 
@@ -60,10 +67,9 @@ for read in all_mol_name:
 print('')
 
 ng.check_product_in_dict(True)
-
 #!!!
 
-SavePath = '/work/home/ac877eihwp/renyq/20257b/test/RN/'
+SavePath = '/public/home/ac877eihwp/renyq/C2/test/RN/'
 
 #!!!
 if not os.path.exists(SavePath):
@@ -80,6 +86,6 @@ with open(f'{SavePath}mollist.txt', 'w', encoding='UTF-8') as f:
     f.close()
 # write reactionslist and molist
 
-ng.plot_network_to_pdf_file(filepath=f"{SavePath}network_SRM_smiles1.pdf")
-ng.plot_network_to_pdf_file_labeltransed(filepath=f"{SavePath}network_SRM_string1.pdf")
+#ng.plot_network_to_pdf_file(filepath=f"{SavePath}network_SRM_smiles1.pdf")
+#ng.plot_network_to_pdf_file_labeltransed(filepath=f"{SavePath}network_SRM_string1.pdf")
 

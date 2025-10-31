@@ -403,6 +403,7 @@ class RDA_S():
             return QTS
 '''------------------------------------------------------'''
 #只考考虑成键原子之间的欧式距离
+#结论：对过渡态搜索精度无显著提升
 model_path = '/public/home/ac877eihwp/renyq'
 calc = NequIPCalculator.from_deployed_model(model_path, device='cpu')
 with open('config.json','r') as j:

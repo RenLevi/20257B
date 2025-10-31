@@ -153,7 +153,7 @@ class mlpopt4system():
     def start(self,random_number):
         sys_path = self.p
         foldername = self.f
-        nequipModel=NequIPCalculator.from_deployed_model(model_path='/work/home/ac877eihwp/renyq/sella/LUNIX_all/mlp_opt/prototypeModel.pth',device='cpu')
+        nequipModel=NequIPCalculator.from_deployed_model(model_path='/public/home/ac877eihwp/renyq/prototypeModel.pth',device='cpu')
         w_fmax = []
         w_bond = []
         w_no_ads = []
@@ -166,10 +166,16 @@ class mlpopt4system():
             print(f' Starting optmization by NequIP model:')
             FIRE(struct).run(fmax=0.1,steps=500)
             BFGS(struct, trajectory=f'{sys_path}/{i}/nequipOpt.traj').run(fmax=0.05,steps=1000)
-            fmax = get_fmax_from_traj(f'{sys_path}/{i}/nequipOpt.traj')
+            try:
+                fmax = get_fmax_from_traj(f'{sys_path}/{i}/nequipOpt.traj')
+            except Exception:
+                fmax=-1
             if fmax > 0.05:
                 w_fmax.append(i)
                 print(f'struct_{i} fmax up to limit')
+            if fmax ==-1:
+                w_fmax.append(i)
+                print(f'struct_{i} fmax wrong')
             else:
                 CB = checkBonds()
                 CB.poscar = struct

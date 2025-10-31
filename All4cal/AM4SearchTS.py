@@ -15,6 +15,6 @@ for i in range(len(foldersplitlist)):
     os.makedirs(name=f'model/jobsub/RDA_S/{i}',exist_ok=True)
     with open(f'model/jobsub/RDA_S/{i}/config.json','w') as j:
         json.dump(data,j)
-    sp.copyFiles('RDA_S/SearchTS_test.py',f'model/jobsub/RDA_S/{i}')
+    sp.copyFiles('RDA_S/SearchTS_record_dist.py',f'model/jobsub/RDA_S/{i}')
     sp.copyFiles('RDA_S/jobsub.sh',f'model/jobsub/RDA_S/{i}')
     sp.run_command_in_directory(directory=f'model/jobsub/RDA_S/{i}',command='qsub jobsub.sh')

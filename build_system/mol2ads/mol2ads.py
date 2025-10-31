@@ -79,11 +79,11 @@ def check_dist_between_atoms(structure):
                     pass
     return True
 ## 检查分子是否位于表面以上 & 吸附原子是否位于分子最下方
-def check_molecule_over_surface(surface,mol,sv):
+def check_molecule_over_surface(surface,mol,delta=0):
     z_max = max(surface.positions[:,2])+0.5#高于表面0.5A的距离
     #molecule_center = sv + np.array([0,0,z_max])
     z_min_mol = min(mol.positions[:,2])
-    if z_min_mol < z_max:
+    if z_min_mol < z_max+delta:
         print(f'部分原子距离催化剂表面不到0.5埃')
         return False
     '''elif molecule_center[2] > z_min_mol:
@@ -137,7 +137,7 @@ class mol2ads:
                 sv,theta_z,varphi_y = random_place(size)
                 mol = rotate_mol(adGroup_mol,(theta_z,'z'),(varphi_y,'y'))
                 system = place_mol_on_surface(mol,metal,sv)
-                if check_dist_between_atoms(system) == True and check_molecule_over_surface(metal,mol,sv) == True:
+                if check_dist_between_atoms(system) == True and check_molecule_over_surface(metal,mol) == True:
                     floder_n = f'{self.SF}/{adGroup_name}/{str(j)}'
                     file_n = 'POSCAR'
                     save_file(floder_n,file_n,system)

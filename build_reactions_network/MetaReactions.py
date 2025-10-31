@@ -3,6 +3,7 @@ from MEACRNG.Tools.utils import get_index_and_total_bond_num_of_the_nth_atom_of_
 from MEACRNG.Tools import utils as u
 from MEACRNG.MolEncoder.MolMaker import MolMaker
 
+  
 class ReactionType:# TOUNDER
     OneReactantOneProduct = 1
 
@@ -213,6 +214,34 @@ class OneReactantOneProductMetaReation:
         return warp
 
     @staticmethod
+    def reaction_add_mol_on_nth_O_with_carbon_and_make_CO_single_bond(mol, n):
+        def warp(target_mol):
+            if isinstance(target_mol, bool): return mol
+            mol_to_add = Chem.RWMol(mol)
+            now_n = 0
+            for a in target_mol.GetAtoms():
+                if a.GetSymbol() == "O":
+                    now_n += 1
+                if now_n >= n:
+                    O_index_in_target = a.GetIdx()
+                    degree = target_mol.GetAtomWithIdx(O_index_in_target).GetDegree()
+                    if degree >=2:
+                        return False
+                    break
+            if now_n < n:
+                return False
+            C_index_in_mol_to_add, _ = u.get_index_and_total_bond_num_of_the_nth_atom_of_element_with_total_m_bonds(
+                mol_to_add, 1, "C")
+
+            new_mol = MolMaker.add_mol_B_to_mol_A_and_make_bonds_in_ith_atom_in_A_with_jth_atom_in_B(
+                mol_to_add,
+                target_mol,
+                C_index_in_mol_to_add,
+                O_index_in_target,
+                Chem.BondType.SINGLE)
+            return new_mol
+
+        return warp
     def reaction_add_mol_on_nth_carbon_and_make_CC_single_bond(mol,n):
         def warp(target_mol):
             if isinstance(target_mol, bool): return mol
@@ -220,13 +249,11 @@ class OneReactantOneProductMetaReation:
             now_n = 0
             for a in target_mol.GetAtoms():
                 if a.GetSymbol() == "C":
-                        now_n += 1
+                    now_n += 1
                 if now_n >= n:
                     C_index_in_target = a.GetIdx()
                     break
             if  now_n < n:
-                C_index_in_target = target_mol.GetAtoms()[0].GetIdx()
-            if now_n == 0:
                 return False
             C_index_in_mol_to_add, _ = u.get_index_and_total_bond_num_of_the_nth_atom_of_element_with_total_m_bonds(
                 mol_to_add, 1, "C")

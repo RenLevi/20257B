@@ -202,10 +202,10 @@ def D_criteria(delta_dIS,delta_dFS,limit=0.05):
         print("不满足D_criteria")
         return False 
 def freq_cal(atoms,p):
-    vib = Vibrations(atoms, name = 'freq_calculation', delta = 0.01, nfree = 2)
+    vib = Vibrations(atoms, name = f'{p}/freq_calculation', delta = 0.01, nfree = 2)
     vib.run()
     vib.summary(log=f'{p}/frequency_summary.txt')
-    frequencies = vib.get_frequencies()
+    frequencies = vib.get_freqsuencies()
     #print("\n振动频率 (cm⁻¹):")
     return frequencies
 def get_single_filename(folder_path):
@@ -420,16 +420,17 @@ for name in folderpath:
             SearchTS.run(calc)
     else:
         ValueError('Run IS/FS optimization first')
-    '''if check_file_exists(f'{p0}/','frequency_summary.txt')==False:
+    if check_file_exists(f'{p0}/IntermediateProcess','frequency_summary.txt')==False:
         fn = get_single_filename(f'{p0}/IntermediateProcess/results/')
         atoms = read(f'{p0}/IntermediateProcess/results/{fn}')
         atoms.calc=calc
         indices_to_fix = [atom.index for atom in atoms if atom.symbol == 'Ru']
         constraint = FixAtoms(indices=indices_to_fix)
         atoms.set_constraint(constraint)
-        freq = freq_cal(atoms,p0)
+        freq = freq_cal(atoms,f'{p0}/IntermediateProcess')
     else:
-        pass'''
+        pass
+
 
 
 

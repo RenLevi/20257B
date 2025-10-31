@@ -6,7 +6,7 @@ import os
 Pre4NEB = pb.PREforNEB('/work/home/ac877eihwp/renyq/20250828TT/test')
 Pre4NEB.readDataPath()
 Pre4NEB.buildNEB('/work/home/ac877eihwp/renyq/20250828TT/test/RN/reactionslist.txt')
-'''Pre4NEB.start_split(10)
+Pre4NEB.start_split(10)
 foldersplitlist = Pre4NEB.fsp
 for i in range(len(foldersplitlist)):
     fl = foldersplitlist[i]
@@ -22,7 +22,6 @@ for i in range(len(foldersplitlist)):
     sp.copyFiles('MLP_opt/mlp_calEnergy.py',f'test/jobsub/opt/{i}')
     sp.copyFiles('MLP_opt/jobsubopt.sh',f'test/jobsub/opt/{i}')
     sp.run_command_in_directory(directory=f'test/jobsub/opt/{i}',command='sbatch jobsubopt.sh')
-'''
     
 
 

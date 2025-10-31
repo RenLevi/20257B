@@ -88,7 +88,7 @@ def optimize_with_energy_criterion(model, calculator, energy_threshold=1e-2,
     # 设置计算器
     atoms.calc = calculator
     # 初始化优化器
-    optimizer = FIRE(atoms)
+    optimizer = BFGS(atoms)
     # 记录能量历史
     energy_history = []
     # 手动执行优化步骤
@@ -191,7 +191,7 @@ def directionality_sigma(ris,rfs,rcopt,r1,idx,outshow=None):
     else:
         ini = dfs
         fin = dis
-    if d1<=ini and dcopt<=ini and d1>=fin and dcopt>=fin:
+    if d1<=ini+0.2 and dcopt<=ini+0.2 and d1>=fin-0.2 and dcopt>=fin-0.2:
         deltad=dcopt-d1
     else:return ValueError('trash'+'!'*50)
     output = sigmaCopt(deltad,output=outshow)
@@ -291,7 +291,7 @@ class RDA_S():
             if sigma_R2 == sigma_Rref :
                 BETAlist.append(beta)
                 sigma_Ri = copy.deepcopy(sigma_R2)
-                while sigma_Ri == sigma_Rref or sigma_Ri == 'Nondirectional':
+                while sigma_Ri == sigma_Rref:
                     beta = beta - 0.1
                     Ri = interpolate_structure(R1Copt,Rref,fraction=beta,output_file=f'{path_IP}/step2/R2_{int(beta*10)}.vasp')
                     print(f"当前beta: {beta}")
@@ -308,7 +308,7 @@ class RDA_S():
             elif sigma_R2 == sigma_R1:
                 sigma_Ri = copy.deepcopy(sigma_R2)
                 BETAlist.append(beta)
-                while sigma_Ri == sigma_R1 or sigma_Ri == 'Nondirectional':
+                while sigma_Ri == sigma_R1:
                     beta = beta + 0.1
                     Ri = interpolate_structure(R1Copt,Rref,fraction=beta,output_file=f'{path_IP}/step2/R2_{int(beta*10)}.vasp')
                     print(f"当前beta: {beta}")
@@ -327,8 +327,8 @@ class RDA_S():
                 print('Start Sella')
                 QTS = copy.deepcopy(R2Copt)
                 Sella_Search = Sella(QTS, 
-                                    logfile=f'{path_IP}step1/R2Copt_sella.log', 
-                                    trajectory=f'{path_IP}step1/R2Copt_sella.traj')
+                                    logfile=f'{path_IP}step2/R2Copt_sella.log', 
+                                    trajectory=f'{path_IP}step2/R2Copt_sella.traj')
                 Sella_Search.run(fmax=0.05)
                 write(f'{path_IP}results/TS_RDA_S_R2Copt.xyz', QTS)
                 print("过渡态搜索完成,结果保存在TS_RDA_S_R2Copt.xyz")
@@ -375,7 +375,7 @@ class RDA_S():
 
 '''------------------------------------------------------'''
 
-model_path = '/work/home/ac877eihwp/renyq/prototypeModel.pth'
+model_path = '/public/home/ac877eihwp/renyq/prototypeModel.pth'
 calc = NequIPCalculator.from_deployed_model(model_path, device='cpu')
 with open('config.json','r') as j:
     data = json.load(j)

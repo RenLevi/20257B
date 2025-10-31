@@ -22,7 +22,7 @@ with open ('test/RN/mol_without_C.txt','w') as f:
     f.write('[H]\n')
     f.write('[H]O[H]\n')
     f.write('O\n')
-    f.write('OH\n')
+    f.write('O[H]\n')
 smiles2ase = s2m.smi2mol(input='test/RN/mol_without_C.txt',output='test/opt/molecule')
 smiles2ase.mollist2SMILES()
 smiles2ase.creat_folder_and_file()
@@ -44,7 +44,7 @@ foldersplitlist = OPT4ALLSYS.fsp
 for i in range(len(foldersplitlist)):
     fl = foldersplitlist[i]
     data = {
-        'path':'/work/home/ac877eihwp/renyq/20250828TT/test/opt/system',
+        'path':'/public/home/ac877eihwp/renyq/C2/test/opt/system',
         #'record':'/work/home/ac877eihwp/renyq/20250828TT/test/opt/system/record_adscheck.json',
         'folderpath':fl,
         'random_number':20
@@ -54,7 +54,7 @@ for i in range(len(foldersplitlist)):
         json.dump(data,j)
     sp.copyFiles('MLP_opt/mlp_calEnergy.py',f'test/jobsub/opt/{i}')
     sp.copyFiles('MLP_opt/jobsubopt.sh',f'test/jobsub/opt/{i}')
-    sp.run_command_in_directory(directory=f'test/jobsub/opt/{i}',command='sbatch jobsubopt.sh')
+    sp.run_command_in_directory(directory=f'test/jobsub/opt/{i}',command='qsub jobsubopt.sh')
 
     
 

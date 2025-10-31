@@ -11,7 +11,7 @@ import os
 # allowed steps,for multi carbon products，use functions in MetaReation or write a new lib
 
 reactions = ReactionLibUtils.merge_reactions([
-
+    CnOneReactionOneProductReactionLib.reaction_add_carbon_species_on_jth_Os,
     CnOneReactionOneProductReactionLib.reaction_add_carbon_species_on_jth_carbon,
     CnOneReactionOneProductReactionLib.reaction_add_H_on_carbons,
     CnOneReactionOneProductReactionLib.reaction_add_OH_on_carbons,
@@ -28,21 +28,21 @@ check_func = [
     CarbonValidMolCheckFunc.no_more_than_four_bond_in_carbon_check,
     CarbonValidMolCheckFunc.no_more_than_M_bond_in_atom_N_check(n='O',m=2),
     CarbonValidMolCheckFunc.valid_C_O_bond_structure_check_when_only_use_single_CO_bond_simple,
-    CarbonValidMolCheckFunc.no_more_than_three_carbon_check,
+    CarbonValidMolCheckFunc.no_more_than_two_carbon_check,
     CarbonValidMolCheckFunc.num_of_C_and_O_should_smaller_equal_than_4,
-    CarbonValidMolCheckFunc.num_of_CHO_should_bigger_equal_than_1
+    CarbonValidMolCheckFunc.num_of_CHO_should_bigger_equal_than_1,
+    CarbonValidMolCheckFunc.remove_mol_had_two_groups
     
 ]
 
 #reactants and results in Smiles，
-CH3CH2CH3 = SpeciesNode(Chem.AddHs(Chem.MolFromSmiles('CCC')))# 'AddHs' will fill H，eg. C+4H==CH4
+CH3CH3 = SpeciesNode(Chem.AddHs(Chem.MolFromSmiles('CC')))# 'AddHs' will fill H，eg. C+4H==CH4
 CO = SpeciesNode(Chem.MolFromSmiles('CO'))
-#CH3 = SpeciesNode(Chem.MolFromSmiles('[H]C([H])[H]',sanitize=False))# sanitize=False，input smile which keeps H directly.
 
 # set reactant and product
 ng = NetworkGenerator(
     initial_reactants=[CO],
-    final_results=[CH3CH2CH3],
+    final_results=[CH3CH3],
     valid_mol_check_func_list=check_func)
 
 
