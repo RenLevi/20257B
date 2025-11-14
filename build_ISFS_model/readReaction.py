@@ -1,6 +1,6 @@
 from rdkit import Chem
 from rdkit.Chem import rdmolops
-from preSearchTS.CheckNN import *
+from build_ISFS_model.CheckNN import *
 from ase.io import write
 import numpy as np
 import copy
@@ -131,21 +131,12 @@ def checkbond(reaction:list,bms1,bms2):
                 return addatom
     def warp(cs12,add=addatom):
         check_mol = copy.deepcopy(cs12[1])
-        numbeforeadd=check_mol.GetNumAtoms()
         check_mol = COMBINE(check_mol,add)
-        mol = cs12[0]
-        if check_mol.GetNumAtoms() != mol.GetNumAtoms():
-            return [False,False,False,False]
         bonds = cs12[0].GetBonds()
         AA=addATOM()
         aset = {AA,bondedatom}
         check=100
         outlist = [None,None,None,None]
-        bms_check = cs12[-1]
-        adsIDx = []
-        for a in bms_check.ads:
-            id = a.id
-            adsIDx.append(id)
         for bond in bonds:
             mol = copy.deepcopy(cs12[0])
             begin_atom_id = bond.GetBeginAtomIdx()
@@ -156,31 +147,22 @@ def checkbond(reaction:list,bms1,bms2):
             bms = cs12[2]
             cb = bms.cb
             if qset == aset:
-                if begin_atom_id >= numbeforeadd:
-                    checkid = end_atom_id
-                else:
-                    checkid = begin_atom_id
-                if checkid + bms_check.metal in adsIDx:
-                    mol.RemoveBond(begin_atom_id, end_atom_id)
-                    if subHH(Chem.MolToSmiles(mol)) == Chem.MolToSmiles(check_mol):
-                        outlist = [begin_atom.GetIdx(),end_atom.GetIdx(),Chem.MolToSmiles(cs12[0]),Chem.MolToSmiles(check_mol)]
-        for bond in bonds:
-            mol = copy.deepcopy(cs12[0])
-            begin_atom_id = bond.GetBeginAtomIdx()
-            end_atom_id = bond.GetEndAtomIdx()
-            begin_atom = mol.GetAtomWithIdx(begin_atom_id)
-            end_atom = mol.GetAtomWithIdx(end_atom_id)
-            qset = {begin_atom.GetSymbol(),end_atom.GetSymbol()}
-            bms = cs12[2]
-            ads = [] 
-            for Natom in bms.ads:
-                ads.append(Natom.id)
-            if qset == aset:
-                bmsidB=begin_atom.GetIdx()+bms.metal
-                bmsidE=end_atom.GetIdx()+bms.metal
                 mol.RemoveBond(begin_atom_id, end_atom_id)
                 if subHH(Chem.MolToSmiles(mol)) == Chem.MolToSmiles(check_mol):
-                    outlist = [begin_atom.GetIdx(),end_atom.GetIdx(),Chem.MolToSmiles(cs12[0]),Chem.MolToSmiles(check_mol)]
+                    Bid=begin_atom.GetIdx()+bms.metal
+                    Eid=end_atom.GetIdx()+bms.metal
+                    a1 = cb.atoms[Bid]
+                    a2 = cb.atoms[Eid]
+                    p1 = a1.xyz
+                    p2 = a2.xyz
+                    sumZ=p1[2]+p2[2]
+                    print(sumZ,check)
+                    if sumZ<=check:
+                        check = sumZ
+                        outlist = [begin_atom.GetIdx(),end_atom.GetIdx(),Chem.MolToSmiles(cs12[0]),Chem.MolToSmiles(check_mol)]
+                    else:
+                        check = check
+                    print(sumZ,check,outlist)
         return outlist[0],outlist[1],outlist[2],outlist[3]
     if reactiontype == 'Add':
         cs12 = (mol2,mol1,bms2,bms1)
@@ -189,7 +171,7 @@ def checkbond(reaction:list,bms1,bms2):
         cs12 = (mol1,mol2,bms1,bms2)
         if addatom == 'O/OH':
             o1,o2,o3,o4 = warp(cs12,add='O')
-            if o1 == False and o2 == False and o3 == False and o4 == False:
+            if o1 == None and o2 == None and o3 == None and o4 == None:
                 return warp(cs12,add='OH')
             else:
                 return o1,o2,o3,o4

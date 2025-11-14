@@ -91,7 +91,7 @@ class checkBonds():
                         jth_atom.bonddict[ith_atom]=ith_atom.number
                     else:
                         print(f'there is adsorption with {ith_atom.elesymbol}:{i} and {jth_atom.elesymbol}:{j}.')
-                        self.adsorption.append(ith_atom)
+                        self.adsorption.append(jth_atom)
             else:pass
 class BuildMol2Smiles():
     def __init__(self,CB:checkBonds):

@@ -50,30 +50,30 @@ class checkBonds():
     def min_dis(self,atomID1,atomID2):
         distance = self.poscar.get_distance(atomID1,atomID2, mic=True)
         return distance
-    '''def CheckBondwith2Atoms(self,main_atomID,sub_atomID):
+    def CheckBondwith2Atoms(self,main_atomID,sub_atomID):
         dis = self.min_dis(main_atomID,sub_atomID)
         main_atom  = self.atoms[main_atomID] 
         sub_atom = self.atoms[sub_atomID]
         if check_NON_metal_atoms(main_atom) == True or check_NON_metal_atoms(sub_atom) == True:
             if check_NON_metal_atoms(main_atom) == True and check_NON_metal_atoms(sub_atom) == True:
                 if bond(main_atom.elesymbol,sub_atom.elesymbol,dis).judge_bondorder() == 1:
-                    print(f'there is a bond with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.')
+                    #print(f'there is a bond with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.')
                     main_atom.bonddict[sub_atom] = sub_atom.number
                     sub_atom.bonddict[main_atom] = main_atom.number
                 else:
                     pass
-                    print(f"there isn't a bond with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.")    
+                    #print(f"there isn't a bond with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.")    
             else:
                 if bond(main_atom.elesymbol,sub_atom.elesymbol,dis).judge_bondorder() == 1:
-                    print(f'there is adsorption with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.')
+                    #print(f'there is adsorption with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.')
                     if check_NON_metal_atoms(main_atom) == True:
                         self.adsorption.append(main_atom)
                     else:
                         self.adsorption.append(sub_atom)
         else:
-            pass'''
+            pass
 
-    '''def CheckAllBonds(self):
+    def CheckAllBonds(self):
         atoms = self.poscar
         for i, atom_i in enumerate(atoms):
             for j, atom_j in enumerate(atoms):
@@ -81,22 +81,7 @@ class checkBonds():
                     self.CheckBondwith2Atoms(i,j)
                 else:
                     pass
-        #print('finish checking ALL bonds')'''
-    def CheckAllBonds(self):
-        neighbors_info_list,neighbors_idx_list = bond(self.poscar).judge_bondorder()
-        for i in range(len(neighbors_idx_list)):
-            ith_atom = self.atoms[i]
-            if check_NON_metal_atoms(ith_atom) == True:
-                for j in neighbors_idx_list[i]:
-                    jth_atom = self.atoms[j]
-                    if check_NON_metal_atoms(jth_atom)==True:
-                        print(f'there is a bond with {ith_atom.elesymbol}:{i} and {jth_atom.elesymbol}:{j}.')
-                        ith_atom.bonddict[jth_atom]=jth_atom.number
-                        jth_atom.bonddict[ith_atom]=ith_atom.number
-                    else:
-                        print(f'there is adsorption with {ith_atom.elesymbol}:{i} and {jth_atom.elesymbol}:{j}.')
-                        self.adsorption.append(jth_atom)
-            else:pass
+        #print('finish checking ALL bonds')
 class BuildMol2Smiles():
     def __init__(self,CB:checkBonds):
         self.metal = 0

@@ -131,39 +131,10 @@ def checkbond(reaction:list,bms1,bms2):
                 return addatom
     def warp(cs12,add=addatom):
         check_mol = copy.deepcopy(cs12[1])
-        numbeforeadd=check_mol.GetNumAtoms()
         check_mol = COMBINE(check_mol,add)
-        mol = cs12[0]
-        if check_mol.GetNumAtoms() != mol.GetNumAtoms():
-            return [False,False,False,False]
         bonds = cs12[0].GetBonds()
         AA=addATOM()
         aset = {AA,bondedatom}
-        check=100
-        outlist = [None,None,None,None]
-        bms_check = cs12[-1]
-        adsIDx = []
-        for a in bms_check.ads:
-            id = a.id
-            adsIDx.append(id)
-        for bond in bonds:
-            mol = copy.deepcopy(cs12[0])
-            begin_atom_id = bond.GetBeginAtomIdx()
-            end_atom_id = bond.GetEndAtomIdx()
-            begin_atom = mol.GetAtomWithIdx(begin_atom_id)
-            end_atom = mol.GetAtomWithIdx(end_atom_id)
-            qset = {begin_atom.GetSymbol(),end_atom.GetSymbol()}
-            bms = cs12[2]
-            cb = bms.cb
-            if qset == aset:
-                if begin_atom_id >= numbeforeadd:
-                    checkid = end_atom_id
-                else:
-                    checkid = begin_atom_id
-                if checkid + bms_check.metal in adsIDx:
-                    mol.RemoveBond(begin_atom_id, end_atom_id)
-                    if subHH(Chem.MolToSmiles(mol)) == Chem.MolToSmiles(check_mol):
-                        outlist = [begin_atom.GetIdx(),end_atom.GetIdx(),Chem.MolToSmiles(cs12[0]),Chem.MolToSmiles(check_mol)]
         for bond in bonds:
             mol = copy.deepcopy(cs12[0])
             begin_atom_id = bond.GetBeginAtomIdx()
@@ -178,10 +149,11 @@ def checkbond(reaction:list,bms1,bms2):
             if qset == aset:
                 bmsidB=begin_atom.GetIdx()+bms.metal
                 bmsidE=end_atom.GetIdx()+bms.metal
-                mol.RemoveBond(begin_atom_id, end_atom_id)
-                if subHH(Chem.MolToSmiles(mol)) == Chem.MolToSmiles(check_mol):
-                    outlist = [begin_atom.GetIdx(),end_atom.GetIdx(),Chem.MolToSmiles(cs12[0]),Chem.MolToSmiles(check_mol)]
-        return outlist[0],outlist[1],outlist[2],outlist[3]
+                if bmsidB in ads or bmsidE in ads or check_atom_saturation(mol)!=False:
+                    mol.RemoveBond(begin_atom_id, end_atom_id)
+                    if subHH(Chem.MolToSmiles(mol)) == Chem.MolToSmiles(check_mol):
+                        return begin_atom.GetIdx(),end_atom.GetIdx(),Chem.MolToSmiles(cs12[0]),Chem.MolToSmiles(check_mol)
+        return False, False, False, False
     if reactiontype == 'Add':
         cs12 = (mol2,mol1,bms2,bms1)
         return warp(cs12)
@@ -189,7 +161,7 @@ def checkbond(reaction:list,bms1,bms2):
         cs12 = (mol1,mol2,bms1,bms2)
         if addatom == 'O/OH':
             o1,o2,o3,o4 = warp(cs12,add='O')
-            if o1 == False and o2 == False and o3 == False and o4 == False:
+            if o1 == False and o2 == False and o3 == False:
                 return warp(cs12,add='OH')
             else:
                 return o1,o2,o3,o4
@@ -346,7 +318,6 @@ class readreaction():
         self.group1 = []
         self.group2 = []
         self.changebondatom = None
-        self.stop = False
     def readfile(self):
         def warp(id1,id2,cb):
             atoms = cb.poscar
@@ -370,50 +341,45 @@ class readreaction():
         BMS2 = BuildMol2Smiles(CB2)
         BMS2.build()
         begin_id,end_id,smilesFORcheck,smilesFORspilt = checkbond(self.r,BMS1,BMS2)
-        
-        if begin_id == None:
-            print(f'{self.r_str}:checkbond wrong!')
-            self.stop = True
+        Bid_infile = begin_id +BMS1.metal 
+        Eid_infile = end_id +BMS1.metal
+        reactiontype = self.r[1][0]
+        #addatom = self.r[1][1]
+        #bondedatom = self.r[1][-1]
+        '''
+        确保FS为成键后产物
+        '''
+        if reactiontype == 'Add':
+            CB = CB2
+            self.FS = CB2.poscar
         else:
-            Bid_infile = begin_id +BMS1.metal 
-            Eid_infile = end_id +BMS1.metal
-            reactiontype = self.r[1][0]
-            '''
-            确保FS为成键后产物
-            '''
-            if reactiontype == 'Add':
-                CB = CB2
-                self.FS = CB2.poscar
-            else:
-                CB = CB1
-                self.FS = CB1.poscar
-            if bool(CB.adsorption) == False:
-                noads = True
-            else:
-                noads = False
-            notmove,move = warp(Bid_infile,Eid_infile,CB)
-            notmoveGroupIdx = spilt_group(notmove,move,CB)
-            moveGroupIdx = spilt_group(move,notmove,CB)
-            self.group1 = notmoveGroupIdx#main body
-            self.group2 = moveGroupIdx#sub body
-            self.changebondatom = (Bid_infile,Eid_infile)
-            newmol = adjust_distance(CB,notmove,notmoveGroupIdx,move,moveGroupIdx,alpha=0,noads=noads)
-            if check_molecule_over_surface(newmol) == False:
-                    for i in range(1,20):
-                        newmol = adjust_distance(CB,notmove,notmoveGroupIdx,move,moveGroupIdx,alpha=0,delta=0.1*i,noads=noads)
-                        if check_molecule_over_surface(newmol) == True:
-                            print('higher over surface')
-                            break
-            self.IS = newmol
-            self.check =smilesFORcheck 
-            self.split =smilesFORspilt
+            CB = CB1
+            self.FS = CB1.poscar
+        if bool(CB.adsorption) == False:
+            noads = True
+        else:
+            noads = False
+        notmove,move = warp(Bid_infile,Eid_infile,CB)
+        notmoveGroupIdx = spilt_group(notmove,move,CB)
+        moveGroupIdx = spilt_group(move,notmove,CB)
+        self.group1 = notmoveGroupIdx#main body
+        self.group2 = moveGroupIdx#sub body
+        self.changebondatom = (Bid_infile,Eid_infile)
+        newmol = adjust_distance(CB,notmove,notmoveGroupIdx,move,moveGroupIdx,alpha=0,noads=noads)
+        if check_molecule_over_surface(newmol) == False:
+                for i in range(1,20):
+                    newmol = adjust_distance(CB,notmove,notmoveGroupIdx,move,moveGroupIdx,alpha=0,delta=0.1*i,noads=noads)
+                    if check_molecule_over_surface(newmol) == True:
+                        print('higher over surface')
+                        break
+        self.IS = newmol
+        self.check =smilesFORcheck 
+        self.split =smilesFORspilt
     def save(self,path,format):
         # 保存为POSCAR文件（VASP格式）
         if format=='poscar' or 'POSCAR' or 'vasp':
-            if self.stop == False:
-                write(path+'IS.vasp', self.IS, format='vasp', vasp5=True)  # vasp5=True添加元素名称
-                write(path+'FS.vasp', self.FS, format='vasp', vasp5=True)  # vasp5=True添加元素名称
-
+            write(path+'IS.vasp', self.IS, format='vasp', vasp5=True)  # vasp5=True添加元素名称
+            write(path+'FS.vasp', self.FS, format='vasp', vasp5=True)  # vasp5=True添加元素名称
         else:
             print('format should be .vasp')
 

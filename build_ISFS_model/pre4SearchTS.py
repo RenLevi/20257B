@@ -1,4 +1,4 @@
-import preSearchTS.readReaction as rR
+import build_ISFS_model.readReaction as rR
 import os
 import json
 from ase.io import read
@@ -120,43 +120,24 @@ class PREforSearchTS():
             else:
                 RR = rR.readreaction(initial_mol.model_p,final_mol.model_p,reaction)
                 RR.readfile()
-                if RR.stop == False:
-                    subfolder = f'{mainfolder}{rlist[0][0]}_{rlist[-1][0]}/'
-                    data = {f'{rlist[0][0]}_{rlist[-1][0]}':[reaction,RR.changebondatom,RR.group1,RR.group2,RR.check,RR.split]}#File name ：[Reaction,atom bond changed,idx,idx,bonded smiles,broken smiles]
-                    with open(f'{mainfolder}foldername.json', 'r') as f:
-                        file = f.read()
-                        if len(file)>0:
-                            ne = 'ne'
-                        else:
-                            ne = 'e'
-                    if ne == 'ne':
-                        with open (f'{mainfolder}foldername.json','r') as f:
-                            old_data = json.load(f)
+                subfolder = f'{mainfolder}{rlist[0][0]}_{rlist[-1][0]}/'
+                data = {f'{rlist[0][0]}_{rlist[-1][0]}':[reaction,RR.changebondatom,RR.group1,RR.group2,RR.check,RR.split]}#File name ：[Reaction,atom bond changed,idx,idx,bonded smiles,broken smiles]
+                with open(f'{mainfolder}foldername.json', 'r') as f:
+                    file = f.read()
+                    if len(file)>0:
+                        ne = 'ne'
                     else:
-                        old_data ={}
-                    old_data.update(data)
-                    with open(f'{mainfolder}foldername.json', 'w') as f:
-                        json.dump(old_data,f,indent=2)
-                    os.makedirs(subfolder, exist_ok=True)
-                    RR.save(subfolder,'POSCAR')
+                        ne = 'e'
+                if ne == 'ne':
+                    with open (f'{mainfolder}foldername.json','r') as f:
+                        old_data = json.load(f)
                 else:
-                    subfolder = f'{mainfolder}{rlist[0][0]}_{rlist[-1][0]}/'
-                    data = {f'{rlist[0][0]}_{rlist[-1][0]}':'the Reaction is WRONG'}#File name ：[Reaction,atom bond changed,idx,idx,bonded smiles,broken smiles]
-                    with open(f'{mainfolder}foldername.json', 'r') as f:
-                        file = f.read()
-                        if len(file)>0:
-                            ne = 'ne'
-                        else:
-                            ne = 'e'
-                    if ne == 'ne':
-                        with open (f'{mainfolder}foldername.json','r') as f:
-                            old_data = json.load(f)
-                    else:
-                        old_data ={}
-                    old_data.update(data)
-                    with open(f'{mainfolder}foldername.json', 'w') as f:
-                        json.dump(old_data,f,indent=2)
-                    os.makedirs(subfolder, exist_ok=True)
+                    old_data ={}
+                old_data.update(data)
+                with open(f'{mainfolder}foldername.json', 'w') as f:
+                    json.dump(old_data,f,indent=2)
+                os.makedirs(subfolder, exist_ok=True)
+                RR.save(subfolder,'POSCAR')
         with open(f'{mainfolder}foldername.json', 'r') as f:
             self.d = json.load(f)               
     def start_split(self,batch):

@@ -82,11 +82,16 @@ class CnOneReactionOneProductReactionLib:
         OneReactantOneProductMetaReation.reaction_remove_kth_atom_A_on_nth_atom_B(
             1, "O", i, "C", True),
         "Remove 1st O/OH on %sth C" % i,
-        ReactionType.OneReactantOneProduct) for i in nlist]#wrong
+        ReactionType.OneReactantOneProduct) for i in range(1,n+1)]
 
     reaction_remove_second_O_or_OH_on_carbon = [Reaction(
         OneReactantOneProductMetaReation.reaction_remove_kth_atom_A_on_nth_atom_B(
             2, "O", i, "C", True),
         "Remove 2nd O/OH on %sth C" % i,
-        ReactionType.OneReactantOneProduct) for i in nlist]#wrong
+        ReactionType.OneReactantOneProduct) for i in range(1,n+1)]
+    reaction_remove_second_O_or_OH_on_carbon = [Reaction(
+        OneReactantOneProductMetaReation.reaction_remove_kth_atom_A_on_nth_atom_B(
+            3, "O", i, "C", True),
+        "Remove 3rd O/OH on %sth C" % i,
+        ReactionType.OneReactantOneProduct) for i in range(1,n+1)]
  

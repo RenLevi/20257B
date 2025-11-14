@@ -12,27 +12,24 @@ from rdkit import Chem
 import numpy as np
 import re
 import os
-from pymatgen.analysis.local_env import CrystalNN,VoronoiNN,JmolNN
-from pymatgen.io.ase import AseAtomsAdaptor
+from ase.data import covalent_radii, atomic_numbers
 '''------------------------------------------------------'''
 class bond():
-    def __init__(self,atoms):
-        self.structure = AseAtomsAdaptor.get_structure(atoms)
+    def __init__(self, ele1,ele2,dis):
+        self.ele1 = ele1
+        self.ele2 = ele2
+        self.length = dis
     def judge_bondorder(self):
-        structure = self.structure
         # 获取元素的原子序数
-        jnn = JmolNN()
-        neighbors_info_list = []
-        neighbors_idx_list = []
-        for i in range(0,len(structure)):
-            neighbors_info = jnn.get_nn_info(structure, i)
-            neighbors_info_list.append(neighbors_info)
-            neighbors_idx = []
-            for dict_i in neighbors_info:
-                neighbors_idx.append(dict_i['site_index'])
-            neighbors_idx_list.append(neighbors_idx)
-                
-        return neighbors_info_list,neighbors_idx_list
+        z_i = atomic_numbers[self.ele1]
+        z_j = atomic_numbers[self.ele2]
+        r_i = covalent_radii[z_i]
+        r_j = covalent_radii[z_j]
+        delta = 0.45
+        if self.length <= r_i+r_j+delta:
+            return 1
+        else:
+            return 0
 '''------------------------------------------------------'''
 def check_NON_metal_atoms(atom):
     non_metal_list =[1,2,5,6,7,8,9,10,14,15,16,17,18,33,34,35,36,52,53,54,85,86,117,118]
@@ -44,7 +41,7 @@ def subHH(STR):
     result = re.sub(r'\[HH\]', '[H]', STR)
     return result
 class N_atom:
-    def __init__(self, coord, element,number,index):
+    def __init__(self,coord,element,number,index):
         self.xyz = coord
         self.id = index
         self.elesymbol = element
@@ -77,22 +74,41 @@ class checkBonds():
             print('PBC is not open')
             return False
         
+    def min_dis(self,atomID1,atomID2):
+        distance = self.poscar.get_distance(atomID1,atomID2, mic=True)
+        return distance
+    def CheckBondwith2Atoms(self,main_atomID,sub_atomID):
+        dis = self.min_dis(main_atomID,sub_atomID)
+        main_atom  = self.atoms[main_atomID] 
+        sub_atom = self.atoms[sub_atomID]
+        if check_NON_metal_atoms(main_atom) == True or check_NON_metal_atoms(sub_atom) == True:
+            if check_NON_metal_atoms(main_atom) == True and check_NON_metal_atoms(sub_atom) == True:
+                if bond(main_atom.elesymbol,sub_atom.elesymbol,dis).judge_bondorder() == 1:
+                    #print(f'there is a bond with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.')
+                    main_atom.bonddict[sub_atom] = sub_atom.number
+                    sub_atom.bonddict[main_atom] = main_atom.number
+                else:
+                    pass
+                    #print(f"there isn't a bond with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.")    
+            else:
+                if bond(main_atom.elesymbol,sub_atom.elesymbol,dis).judge_bondorder() == 1:
+                    #print(f'there is adsorption with {main_atom.elesymbol}:{main_atomID} and {sub_atom.elesymbol}:{sub_atomID}.')
+                    if check_NON_metal_atoms(main_atom) == True:
+                        self.adsorption.append(main_atom)
+                    else:
+                        self.adsorption.append(sub_atom)
+        else:
+            pass
 
     def CheckAllBonds(self):
-        neighbors_info_list,neighbors_idx_list = bond(self.poscar).judge_bondorder()
-        for i in range(len(neighbors_idx_list)):
-            ith_atom = self.atoms[i]
-            if check_NON_metal_atoms(ith_atom) == True:
-                for j in neighbors_idx_list[i]:
-                    jth_atom = self.atoms[j]
-                    if check_NON_metal_atoms(jth_atom)==True:
-                        print(f'there is a bond with {ith_atom.elesymbol}:{i} and {jth_atom.elesymbol}:{j}.')
-                        ith_atom.bonddict[jth_atom]=jth_atom.number
-                        jth_atom.bonddict[ith_atom]=ith_atom.number
-                    else:
-                        print(f'there is adsorption with {ith_atom.elesymbol}:{i} and {jth_atom.elesymbol}:{j}.')
-                        self.adsorption.append(ith_atom)
-            else:pass
+        atoms = self.poscar
+        for i, atom_i in enumerate(atoms):
+            for j, atom_j in enumerate(atoms):
+                if j > i:
+                    self.CheckBondwith2Atoms(i,j)
+                else:
+                    pass
+        #print('finish checking ALL bonds')
 class BuildMol2Smiles():
     def __init__(self,CB:checkBonds):
         self.metal = 0
@@ -137,7 +153,6 @@ def read_data(file_name,model,answerlist,p):
         alltest.CheckAllBonds()
         allbm2s = BuildMol2Smiles(alltest)
         allbm2s.build()
-        frags = Chem.GetMolFrags(allbm2s.mol)
         out_t = [bool(allbm2s.smiles == answer[L]),None,None]#ttt can pass
         out_smi = [allbm2s.smiles,None,None]
         for i in range(2,4):
@@ -163,7 +178,7 @@ def read_data(file_name,model,answerlist,p):
         temp=out_t[-1]
         out_t[-1]=out_t[-2]
         out_t[-2]=temp
-        return out_t,out_smi,len(frags)
+        return out_t,out_smi
     [Reaction,bondatom,mainBodyIdx,subBodyIdx,bonded_smiles,broken_smiles] = answerlist
     if model == 'FS':
         Atoms = read(file_name)
@@ -174,46 +189,31 @@ def read_data(file_name,model,answerlist,p):
         else: 
             return ValueError('Optimization did not converge within the maximum number of steps.')
     elif model == 'IS':
-        z1,z2,v3=0,0,0
         Atoms = read(file_name)
-        bbb,sss,lf = warp(Atoms,answerlist,-1)
+        bbb,sss = warp(Atoms,answerlist,-1)
         Atoms.calc = calc
-        BFGS(Atoms,trajectory='000.traj').run(steps=50)
-        bbb_t,sss_t,lf = warp(Atoms,answerlist,-1)
+        BFGS(Atoms,trajectory=f'{p}0.traj').run(steps=10)
+        bbb_t,sss_t = warp(Atoms,answerlist,-1)
+        r1,r2=0,0
         while bbb_t[0] == False:
-            print(f'{z1,z2,v3,sss,sss_t,lf}')#
-            c1,c2,c3 = bool(sss[1]==sss_t[1]), bool(sss[2]==sss_t[2]),bool(lf==1)
+            print(f'{r1,r2,sss,sss_t}')#
+            c1,c2 = bool(sss[1]==sss_t[1]), bool(sss[2]==sss_t[2])
             if c1 == False:
-                z1=1+z1
+                r1=1+r1
             if c2 == False:
-                z2=1+z2
-            if c3 == True:
-                v3=1+v3
+                r2=1+r2
             Atoms = read(file_name)
             Atoms.calc = calc
-            centerMAIN=np.array([0,0,0])
-            centerSUB=np.array([0,0,0])
             for mid in mainBodyIdx:
-                centerMAIN = centerMAIN+Atoms.positions[mid]
+                Atoms.positions[mid] = Atoms.positions[mid]+np.array([0,0,r1])
             for sid in subBodyIdx:
-                centerSUB=centerSUB+Atoms.positions[sid]
-            CM = centerMAIN/len(mainBodyIdx)
-            CS = centerSUB/len(subBodyIdx)
-            M2S=CM-CS
-            M2S_new = M2S*(np.linalg.norm(M2S)+v3)/np.linalg.norm(M2S)
-            CS_new = CM-M2S_new
-            sv = CS_new-CS
-            for mid in mainBodyIdx:
-                Atoms.positions[mid] = Atoms.positions[mid]+np.array([0,0,z1])
-            for sid in subBodyIdx:
-                Atoms.positions[sid] = Atoms.positions[sid]+np.array([0,0,z2])+sv
-
-            BFGS(Atoms,trajectory=f'{z1}{z2}{v3}.traj').run(steps=50)
-            bbb_t,sss_t,lf= warp(Atoms,answerlist,-1)
-            if z1 >= 5 or z2 >=5 or v3 >= 5:
-                return ValueError(f'{Reaction}:Optimization of IS model did not converge owing to bond broken.')
+                Atoms.positions[sid] = Atoms.positions[sid]+np.array([0,0,r2])
+            BFGS(Atoms,trajectory=f'{p}{r1}{r2}.traj').run(steps=10,fmax=0.01)
+            bbb_t,sss_t = warp(Atoms,answerlist,-1)
+            if r1 >= 5 or r2 >=5:
+                return ValueError('Optimization of IS model did not converge owing to bond broken.')
             else:pass
-        print(f'{z1,z2,v3,sss[0],sss_t[0]}')#
+        print(f'{r1,r2,sss[0],sss_t[0]}')#
         opt=BFGS(Atoms,maxstep=0.05,trajectory=f'{p}ISopt.traj').run(fmax=0.01,steps=1000)
         if opt == True :
             print('Optimization converged successfully.')
