@@ -197,13 +197,13 @@ class PREforSearchTS():
                     if molstr == 'H':
                         return '[H]'
                     elif molstr == 'OH':
-                        return 'O[H]'
+                        return '[H]O'
                     else:
                         return molstr
                 else:
                     extra = find_uppercase_difference(rlist[-1][0],rlist[0][0])
                     if len(extra)  == 2:
-                        return 'O[H]'
+                        return '[H]O'
                     else:
                         return 'O'
             add_mol = self.file[warp(rlist[1][-4],rlist)]

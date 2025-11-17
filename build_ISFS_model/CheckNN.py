@@ -48,9 +48,9 @@ class checkBonds():
             return False
     def CheckAllBonds(self):
         neighbors_info_list,neighbors_idx_list = bond(self.poscar).judge_bondorder()
+        ithatom = {}
         for i in range(len(neighbors_idx_list)):
             ith_atom = self.atoms[i]
-            ithatom = {}
             if check_NON_metal_atoms(ith_atom) == True:
                 for j in neighbors_idx_list[i]:
                     jth_atom = self.atoms[j]

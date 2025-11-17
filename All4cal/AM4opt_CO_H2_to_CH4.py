@@ -22,7 +22,7 @@ with open ('test/RN/mol_without_C.txt','w') as f:
     f.write('[H]\n')
     f.write('[H]O[H]\n')
     f.write('O\n')
-    f.write('O[H]\n')
+    f.write('[H]O\n')
 smiles2ase = s2m.smi2mol(input='test/RN/mol_without_C.txt',output='test/opt/molecule')
 smiles2ase.mollist2SMILES()
 smiles2ase.creat_folder_and_file()
