@@ -1,4 +1,4 @@
-import preSearchTS.pre4SearchTS as pre4TS
+import build_ISFS_model.pre4SearchTS as pre4TS
 import SUPPORT.support as sp
 import json
 import os
@@ -20,7 +20,7 @@ for i in range(len(foldersplitlist)):
         json.dump(data,j)
     sp.copyFiles('preSearchTS/opt4SearchTS.py',f'test/jobsub/RDA_Spre/{i}')
     sp.copyFiles('preSearchTS/jobpre4TS.sh',f'test/jobsub/RDA_Spre/{i}')
-    sp.run_command_in_directory(directory=f'test/jobsub/RDA_Spre/{i}',command='qsub jobpre4TS.sh')
+    #sp.run_command_in_directory(directory=f'test/jobsub/RDA_Spre/{i}',command='qsub jobpre4TS.sh')
 
     
 

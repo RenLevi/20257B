@@ -28,7 +28,7 @@ class checkBonds():
         #self.poscar = atom
         self.adsorption = []
     def input(self,filename):
-        self.poscar = read(filename)
+        self.poscar = read(filename,index=-1)
 
     def AddAtoms(self):
         atoms= self.poscar
@@ -50,16 +50,18 @@ class checkBonds():
         neighbors_info_list,neighbors_idx_list = bond(self.poscar).judge_bondorder()
         for i in range(len(neighbors_idx_list)):
             ith_atom = self.atoms[i]
+            ithatom = {}
             if check_NON_metal_atoms(ith_atom) == True:
                 for j in neighbors_idx_list[i]:
                     jth_atom = self.atoms[j]
                     if check_NON_metal_atoms(jth_atom)==True:
-                        print(f'there is a bond with {ith_atom.elesymbol}:{i} and {jth_atom.elesymbol}:{j}.')
+                        #print(f'there is a bond with {ith_atom.elesymbol}:{i} and {jth_atom.elesymbol}:{j}.')
                         ith_atom.bonddict[jth_atom]=jth_atom.number
                         jth_atom.bonddict[ith_atom]=ith_atom.number
                     else:
-                        print(f'there is adsorption with {ith_atom.elesymbol}:{i} and {jth_atom.elesymbol}:{j}.')
-                        self.adsorption.append(ith_atom)
+                        #print(f'there is adsorption with {ith_atom.elesymbol}:{i} and {jth_atom.elesymbol}:{j}.')
+                        ithatom[ith_atom.id]=ith_atom
+                self.adsorption = list(ithatom.values())
             else:pass
 class BuildMol2Smiles():
     def __init__(self,CB:checkBonds):
@@ -97,14 +99,17 @@ class BuildMol2Smiles():
 
 if (__name__ == "__main__"):
     CB = checkBonds()
-    CB.input('[H]C/1/nequipOpt.traj')
-    if CB.CheckPBC() == True:
-        CB.AddAtoms()
-        CB.CheckAllBonds()
-    else:
-        pass
-    BM2S = BuildMol2Smiles(CB)
-    BM2S.build()
-    print(f'OUTPUT:{BM2S.smiles}')
-    if BM2S.ads != []:
-        print('ads')
+    for i in range(1,21):
+        CB.input(f'{i}/nequipOpt.traj')
+        if CB.CheckPBC() == True:
+            CB.AddAtoms()
+            CB.CheckAllBonds()
+        else:
+            pass
+        BM2S = BuildMol2Smiles(CB)
+        BM2S.build()
+        print(f'OUTPUT:{BM2S.smiles}')
+        if BM2S.ads == []:
+            print('Noads')
+        elif BM2S.ads != []:
+            print('ads')
