@@ -559,19 +559,43 @@ def find_min_sum_distance_point_vectorized(points, point_a, point_b):
     min_distance = total_dists[min_index]
     
     return min_point, min_distance, min_index
+def find_max_sum_distance_point_vectorized(points, point_a, point_b):
+    """
+    使用向量化计算找到到两点距离和最大的点（更高效）
+    
+    参数:
+    points: 三维点集，形状为(n, 3)的numpy数组
+    point_a, point_b: 两个已知的三维点
+    
+    返回:
+    max_point: 到两点距离和最大的点
+    max_distance: 最大的距离和
+    max_index: 最大点在点集中的索引
+    """
+    # 向量化计算所有点到point_a和point_b的距离
+    dist_a = np.linalg.norm(points - point_a, axis=1)
+    dist_b = np.linalg.norm(points - point_b, axis=1)
+    total_dists = dist_a + dist_b
+    
+    # 找到最小值的索引
+    max_index = np.argmax(total_dists)
+    max_point = points[max_index]
+    max_distance = total_dists[max_index]
+    
+    return max_point, max_distance, max_index
 def select_site_with_max_dist(result_idxlist,base_mol,points,centeridx):
     sitepositions=[]
     idxlist = []
+    total_dists = np.zeros((1,len(result_idxlist)))
     for idx in result_idxlist:
         sitepositions.append(points[idx])
         idxlist.append(idx)
     sitepositions=np.array(sitepositions)
-    total_dists = 0
     for a in base_mol:
-        if a.index != centeridx:
+        if a.index != centeridx and a.symbol != 'Ru':
             point_a = a.position
-            dist_a = np.linalg.norm(sitepositions - point_a, axis=1)
-            total_dists+=dist_a
+            dist_a = np.linalg.norm(sitepositions - point_a,axis=1)
+            total_dists += dist_a
     max_index = np.argmax(total_dists)
     max_point = sitepositions[max_index]
     max_distance = total_dists[max_index]
@@ -856,17 +880,20 @@ class STARTfromBROKENtoBONDED():
                     v_trans = sp4a2-a2sp
                     mola2.positions += v_trans
                     a1a2sys = base_mol+mola2
-            if len(a2.ads_data) > 1:
+            elif len(a2.ads_data) > 1:
+                bap_a1 = base_mol[o1].position
                 a2_ads_data = a2.ads_data
                 site1 = a2_ads_data[0]
-                site2 = a2_ads_data[1]#[nearest, distance,adsA.id,atom_indices,site_type, vector]
+                site2 = a2_ads_data[-1]#[nearest, distance,adsA.id,atom_indices,site_type, vector]
                 v21 = site1[0]- site2[0]
                 distsite12=np.linalg.norm(site1[0]- site2[0])
                 sitepldict = {'top':topsitepl,'bridge':bridegsitepl,'3th_multifold':hccsitepl}
-                min_point1, _, _ = find_min_sum_distance_point_vectorized(sitepldict[site1[-2]],mainPOS,subPOS)
-                v_trans = min_point1-site1[0]
+                DQ4site1 = DistanceQuery(sitepldict[site1[-2]])
+                result_idxlist = DQ4site1.find_points_at_distance(query_point=bap_a1,target_distance=3,tolerance=1)
+                _,max_point1 = select_site_with_max_dist(result_idxlist,base_mol,sitepldict[site1[-2]],o1)
                 DQ4site2 = DistanceQuery(sitepldict[site2[-2]])
-                site2_idxlist=DQ4site2.find_points_at_distance(min_point1,distsite12,tolerance=1)
+                site2_idxlist=DQ4site2.find_points_at_distance(max_point1,distsite12,tolerance=0.5)
+                v_trans = max_point1-site1[0]
                 assert len(site2_idxlist) != 0
                 nobondedatomdist = []
                 for id  in site2_idxlist:
@@ -884,8 +911,8 @@ class STARTfromBROKENtoBONDED():
                     }
                     nobondedatomdist.append(nbad_info)
                 euolist.sort(key=lambda x: x['SUM_dist'])
-                min_point2 = euolist[0]['point2']
-                v_21 = min_point2-min_point1
+                max_point2 = euolist[-1]['point2']
+                v_21 = max_point2-max_point1
                 R = svd_rotation_matrix(v21,v_21)
                 mola2 = copy.deepcopy(a2.only_mol)
                 indices_to_mol = [atom.index for atom in a3sys if atom.symbol != 'Ru']
