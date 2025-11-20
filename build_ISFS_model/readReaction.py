@@ -12,7 +12,7 @@ from ase import Atoms
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.distance import cdist
 from collections import defaultdict
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 def element_constrained_hungarian(atoms_A, atoms_B):
     """
     使用匈牙利算法匹配两个ASE结构中的原子，确保只有相同元素的原子才会匹配
@@ -477,9 +477,9 @@ class DistanceQuery:
         返回所有点到查询点的距离，便于后续分析
         """
         return np.linalg.norm(self.points - query_point, axis=1)
-def find_site(atoms,adsatom:list,finder): 
+def find_site(atoms,adsatom:list,finder:SurfaceSiteFinder): 
     out = []
-    sites, positions,special_vector = finder.find_sites(contact_distance=2)
+    sites, positions,special_vector = finder.find_sites(contact_distance=2.3)
     site_types = finder.classify_sites(multi_site_threshold=2)
     site_positions_list =[]
     atom_indices_list = []
@@ -584,21 +584,31 @@ def find_max_sum_distance_point_vectorized(points, point_a, point_b):
     
     return max_point, max_distance, max_index
 def select_site_with_max_dist(result_idxlist,base_mol,points,centeridx):
-    sitepositions=[]
+    sitepositions0=[]
     idxlist = []
     total_dists = np.zeros((1,len(result_idxlist)))
     for idx in result_idxlist:
-        sitepositions.append(points[idx])
+        sitepositions0.append(points[idx])
         idxlist.append(idx)
-    sitepositions=np.array(sitepositions)
+    sitepositions=np.array(sitepositions0)
+    for a in base_mol:
+        if a.index == centeridx :
+            point_a = a.position
+            dist_a = np.linalg.norm(sitepositions - point_a,axis=1)
+            total_dists = dist_a-dist_a
     for a in base_mol:
         if a.index != centeridx and a.symbol != 'Ru':
             point_a = a.position
             dist_a = np.linalg.norm(sitepositions - point_a,axis=1)
             total_dists += dist_a
-    max_index = np.argmax(total_dists)
-    max_point = sitepositions[max_index]
-    max_distance = total_dists[max_index]
+        
+    if np.all(total_dists == 0):
+        max_index = 0
+        max_point = sitepositions0[max_index]
+    else:
+        max_index = np.argmax(total_dists)
+        max_point = sitepositions0[max_index]
+        max_distance = total_dists[0][max_index]
     return idxlist[max_index],max_point
 '''查询成键反应原子对'''
 def str2list(reaction:str):
@@ -774,6 +784,7 @@ class NN_system():
         indices_to_mol = [atom.index for atom in atoms if atom.symbol != 'Ru']
         self.only_mol = atoms[indices_to_mol]
         self.ads_data = find_site(cb.poscar,cb.adsorption,finder)
+        print(self.ads_data)
         return self
         
 """
@@ -823,16 +834,8 @@ class STARTfromBROKENtoBONDED():
             else:
                 hcc[atom_indices]=self.site_positions[atom_indices]
         def warp(rl,a1,a2,a3):
-            print(rl)
-            
             o1,o2,self.tf,ids_mol = checkbond_a1a2(rl,a1,a2,a3)#id in atoms
-            
-            print(o1,o2,self.tf,ids_mol)
-            
             bid_mol,eid_mol,_,_ = checkbond_a3(rl,a1,a3)
-            
-            print(bid_mol,eid_mol,_,_)
-            
             if o1 == False or o2 == False:
                 return False,False
             base_mol = a1.atoms
@@ -854,16 +857,22 @@ class STARTfromBROKENtoBONDED():
                 if a2st == 'top':
                     bap_a1 = base_mol[o1].position
                     DQ = DistanceQuery(topsitepl)
-                    result_idxlist = DQ.find_points_at_distance(query_point=bap_a1,target_distance=3,tolerance=1)
+                    result_idxlist = DQ.find_points_at_distance(query_point=bap_a1,target_distance=3,tolerance=0.5)
                     _,sp4a2 = select_site_with_max_dist(result_idxlist,base_mol,topsitepl,o1)
+                    print('top')
+                    print(bap_a1)
+                    print(sp4a2)
                     v_trans = sp4a2-a2sp
                     mola2.positions += v_trans
                     a1a2sys = base_mol+mola2
                 elif a2st == 'bridge':
                     bap_a1 = base_mol[o1].position
                     DQ = DistanceQuery(bridegsitepl)
-                    result_idxlist = DQ.find_points_at_distance(query_point=bap_a1,target_distance=3,tolerance=1)
+                    result_idxlist = DQ.find_points_at_distance(query_point=bap_a1,target_distance=3,tolerance=0.5)
                     _,sp4a2 = select_site_with_max_dist(result_idxlist,base_mol,bridegsitepl,o1)
+                    print('bridge')
+                    print(bap_a1)
+                    print(sp4a2)
                     sai = bridgesitekl[result_idxlist[0]]
                     spv = self.special_vectors[sai]
                     v_trans = sp4a2-a2sp
@@ -875,8 +884,11 @@ class STARTfromBROKENtoBONDED():
                 else:
                     bap_a1 = base_mol[o1].position
                     DQ = DistanceQuery(hccsitepl)
-                    result_idxlist = DQ.find_points_at_distance(query_point=bap_a1,target_distance=3,tolerance=1)
+                    result_idxlist = DQ.find_points_at_distance(query_point=bap_a1,target_distance=3,tolerance=0.5)
                     _,sp4a2 = select_site_with_max_dist(result_idxlist,base_mol,hccsitepl,o1)
+                    print('hcc')
+                    print(bap_a1)
+                    print(sp4a2)
                     v_trans = sp4a2-a2sp
                     mola2.positions += v_trans
                     a1a2sys = base_mol+mola2
