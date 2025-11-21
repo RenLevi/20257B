@@ -450,7 +450,7 @@ class DistanceQuery:
         self.points = np.array(points)
         self.tree = cKDTree(self.points)
     
-    def find_points_at_distance(self, query_point, target_distance, tolerance=0.1):
+    def find_points_at_distance(self, query_point, target_distance, tolerance=0.5,opt=1):
         """
         使用KDTree高效查找特定距离的点
         
@@ -462,14 +462,20 @@ class DistanceQuery:
         
         # 使用query_ball_point找到范围内的点
         indices = self.tree.query_ball_point(query_point, max_dist)
-        
+        if opt == 1:
+            # 精确筛选
+            result_indices = []
+            for idx in indices:
+                dist = np.linalg.norm(self.points[idx] - query_point)
+                if dist >= target_distance and dist - target_distance < tolerance:
+                    result_indices.append(idx)
+        elif opt == 0:
         # 精确筛选
-        result_indices = []
-        for idx in indices:
-            dist = np.linalg.norm(self.points[idx] - query_point)
-            if abs(dist - target_distance) < tolerance:
-                result_indices.append(idx)
-        
+            result_indices = []
+            for idx in indices:
+                dist = np.linalg.norm(self.points[idx] - query_point)
+                if  np.abs(dist - target_distance) < tolerance:
+                    result_indices.append(idx)
         return result_indices
     
     def find_all_distances(self, query_point):
@@ -479,7 +485,7 @@ class DistanceQuery:
         return np.linalg.norm(self.points - query_point, axis=1)
 def find_site(atoms,adsatom:list,finder:SurfaceSiteFinder): 
     out = []
-    sites, positions,special_vector = finder.find_sites(contact_distance=2.3)
+    sites, positions,special_vector = finder.find_sites(contact_distance=2.5)
     site_types = finder.classify_sites(multi_site_threshold=2)
     site_positions_list =[]
     atom_indices_list = []
@@ -608,8 +614,13 @@ def select_site_with_max_dist(result_idxlist,base_mol,points,centeridx):
     else:
         max_index = np.argmax(total_dists)
         max_point = sitepositions0[max_index]
-        max_distance = total_dists[0][max_index]
+        max_distance = total_dists[max_index]
     return idxlist[max_index],max_point
+def get_atom_info(atoms, index):
+    """获取单个原子的位置和元素符号"""
+    position = copy.deepcopy(atoms.positions[index])  # 原子位置 (x, y, z)
+    symbol = copy.deepcopy(atoms.symbols[index])      # 元素符号
+    return position, symbol
 '''查询成键反应原子对'''
 def str2list(reaction:str):
     r1 = reaction.split(">")
@@ -674,7 +685,25 @@ def checkbond_a3(reaction:list,a1,a3):
             cb = bms.cb
             if qset == aset:
                 mol.RemoveBond(begin_atom_id, end_atom_id)
+                frags_mol_atom_mapping = []
+                fragments_mols = Chem.GetMolFrags(
+                                                mol, 
+                                                asMols=True, 
+                                                sanitizeFrags=True, 
+                                                frags=None,
+                                                fragsMolAtomMapping=frags_mol_atom_mapping  # 此参数用于接收原子映射信息[citation:1]
+                                            )
                 if subHH(Chem.MolToSmiles(mol)) == Chem.MolToSmiles(check_mol):
+                    for i, fragment in enumerate(fragments_mols):
+                        if subHH(Chem.MolToSmiles(fragment)) == Chem.MolToSmiles(cs12[1]):
+                            main = [i,fragment,None]
+                        else:sub = [i,fragment,None]
+                    if begin_atom.GetIdx() in frags_mol_atom_mapping[main[0]]:
+                        main[-1]=begin_atom.GetIdx()
+                        sub[-1]=end_atom.GetIdx()
+                    elif end_atom.GetIdx()in frags_mol_atom_mapping[main[0]]:
+                        main[-1]=end_atom.GetIdx()
+                        sub[-1]=begin_atom.GetIdx()
                     Bid=begin_atom.GetIdx()+bms.metal
                     Eid=end_atom.GetIdx()+bms.metal
                     a1 = cb.atoms[Bid]
@@ -685,7 +714,7 @@ def checkbond_a3(reaction:list,a1,a3):
                     #print(sumZ,check)
                     if sumZ<=check:
                         check = sumZ
-                        outlist = [begin_atom.GetIdx(),end_atom.GetIdx(),Chem.MolToSmiles(cs12[0]),Chem.MolToSmiles(check_mol)]
+                        outlist = [main[-1],sub[-1],Chem.MolToSmiles(cs12[0]),Chem.MolToSmiles(check_mol)]
                     else:
                         check = check
         return outlist[0],outlist[1],outlist[2],outlist[3]
@@ -807,7 +836,7 @@ class STARTfromBROKENtoBONDED():
         # 包裹网格到表面
         wrapped_points = finder.wrap_grid_to_surface(contact_distance=2, step_size=0.1,height_above_surface=3.0)
         # 查找位点
-        sites, positions,special_vector = finder.find_sites(contact_distance=2)
+        sites, positions,special_vector = finder.find_sites(contact_distance=2.5)
         # 分类位点
         site_types = finder.classify_sites(multi_site_threshold=2)
         self.site = finder
@@ -859,9 +888,6 @@ class STARTfromBROKENtoBONDED():
                     DQ = DistanceQuery(topsitepl)
                     result_idxlist = DQ.find_points_at_distance(query_point=bap_a1,target_distance=3,tolerance=0.5)
                     _,sp4a2 = select_site_with_max_dist(result_idxlist,base_mol,topsitepl,o1)
-                    print('top')
-                    print(bap_a1)
-                    print(sp4a2)
                     v_trans = sp4a2-a2sp
                     mola2.positions += v_trans
                     a1a2sys = base_mol+mola2
@@ -870,9 +896,6 @@ class STARTfromBROKENtoBONDED():
                     DQ = DistanceQuery(bridegsitepl)
                     result_idxlist = DQ.find_points_at_distance(query_point=bap_a1,target_distance=3,tolerance=0.5)
                     _,sp4a2 = select_site_with_max_dist(result_idxlist,base_mol,bridegsitepl,o1)
-                    print('bridge')
-                    print(bap_a1)
-                    print(sp4a2)
                     sai = bridgesitekl[result_idxlist[0]]
                     spv = self.special_vectors[sai]
                     v_trans = sp4a2-a2sp
@@ -886,9 +909,6 @@ class STARTfromBROKENtoBONDED():
                     DQ = DistanceQuery(hccsitepl)
                     result_idxlist = DQ.find_points_at_distance(query_point=bap_a1,target_distance=3,tolerance=0.5)
                     _,sp4a2 = select_site_with_max_dist(result_idxlist,base_mol,hccsitepl,o1)
-                    print('hcc')
-                    print(bap_a1)
-                    print(sp4a2)
                     v_trans = sp4a2-a2sp
                     mola2.positions += v_trans
                     a1a2sys = base_mol+mola2
@@ -932,11 +952,6 @@ class STARTfromBROKENtoBONDED():
                     a.position = np.dot(R,a.position)
                 mola2.positions += v_trans
                 a1a2sys = base_mol+mola2
-            def get_atom_info(atoms, index):
-                """获取单个原子的位置和元素符号"""
-                position = copy.deepcopy(atoms.positions[index])  # 原子位置 (x, y, z)
-                symbol = copy.deepcopy(atoms.symbols[index])      # 元素符号
-                return position, symbol
             indices_to_mol = [atom.index for atom in a1a2sys if atom.symbol != 'Ru']
             a1a2sys_only_mol = copy.deepcopy(a1a2sys[indices_to_mol])
             a3_only_mol = copy.deepcopy(a3.only_mol)
@@ -947,10 +962,7 @@ class STARTfromBROKENtoBONDED():
             subPOS,subSYM=get_atom_info(a1a2sys_only_mol,ids_mol[-1])
             a1a2_center = calculate_midpoint(mainPOS,subPOS)
             v_core_a1a2=mainPOS-subPOS
-            if beginSYM == mainSYM:
-                v_core_a3 = beginPOS-endPOS
-            else:
-                v_core_a3 = endPOS-beginPOS
+            v_core_a3 = beginPOS-endPOS
             #移动a3中的分子
             v_trans = a1a2_center-a3_center
             R = svd_rotation_matrix(v_core_a3,v_core_a1a2)
@@ -974,7 +986,6 @@ class STARTfromBROKENtoBONDED():
                 new_order.append(match_info['index_B'])
             a1a2sys_only_mol = a1a2sys_only_mol[new_order]
             self.group2 = self.slab+a1a2sys_only_mol
-            
             a3_ads_data = a3.ads_data
             if len(a3_ads_data) == 1:
                 [nearest, distance,adsAid,atom_indices,site_type, vector] = a3_ads_data[0]
@@ -985,12 +996,10 @@ class STARTfromBROKENtoBONDED():
                         sitepl = hccsitepl
                     min_point, _, _ = find_min_sum_distance_point_vectorized(sitepl,mainPOS,subPOS)
                     v_trans = min_point - nearest
-                    R = svd_rotation_matrix(v_core_a3,v_core_a1a2)
                     a3sys = copy.deepcopy(a3.atoms)
                     indices_to_mol = [atom.index for atom in a3sys if atom.symbol != 'Ru']
                     for id in indices_to_mol:
                         a3sys[id].position += v_trans
-                        a3sys[id].position = np.dot(R,a3sys[id].position)
                 else:
                     sitepl = bridegsitepl
                     a3spv = self.special_vectors[atom_indices]
@@ -1027,21 +1036,23 @@ class STARTfromBROKENtoBONDED():
             elif len(a3_ads_data) < 1:
                 a3sys = copy.deepcopy(a3.atoms)
                 indices_to_mol = [atom.index for atom in a3sys if atom.symbol != 'Ru']
-                v_trans = v_core_a1a2-v_core_a3
+                v_trans = a1a2_center-a3_center
                 R = svd_rotation_matrix(v_core_a3,v_core_a1a2)
                 for id in indices_to_mol:
-                    a3sys[id].position += v_trans
+                    a3sys[id].position += np.array([v_trans[0],v_trans[1],0])
                     a3sys[id].position = np.dot(R,a3sys[id].position)
             elif len(a3_ads_data) > 1:
                 site1 = a3_ads_data[0]
                 site2 = a3_ads_data[1]#[nearest, distance,adsA.id,atom_indices,site_type, vector]
-                v21 = site1[0]- site2[0]
+                v21 = site2[0]- site1[0]
                 distsite12=np.linalg.norm(site1[0]- site2[0])
                 sitepldict = {'top':topsitepl,'bridge':bridegsitepl,'3th_multifold':hccsitepl}
                 min_point1, _, _ = find_min_sum_distance_point_vectorized(sitepldict[site1[-2]],mainPOS,subPOS)
+                print(min_point1)
                 v_trans = min_point1-site1[0]
                 DQ4site2 = DistanceQuery(sitepldict[site2[-2]])
-                site2_idxlist=DQ4site2.find_points_at_distance(min_point1,distsite12,tolerance=1)
+                site2_idxlist=DQ4site2.find_points_at_distance(min_point1,distsite12,tolerance=1,opt=0)
+                
                 assert len(site2_idxlist) != 0
                 euolist = []
                 for id  in site2_idxlist:
@@ -1050,17 +1061,19 @@ class STARTfromBROKENtoBONDED():
                     R = svd_rotation_matrix(v21,v_21)
                     a3sys = copy.deepcopy(a3.atoms)
                     indices_to_mol = [atom.index for atom in a3sys if atom.symbol != 'Ru']
-                    for id in indices_to_mol:
-                        a3sys[id].position += v_trans
-                        a3sys[id].position = np.dot(R,a3sys[id].position)
+                    for aid in indices_to_mol:
+                        a3sys[aid].position += v_trans
+                        a3sys[aid].position = np.dot(R,a3sys[aid].position)
                     euo_info = {
                     'id':id,
                     'point2':point2,
                     'Euclidean_distance':Euclidean_distance(a3sys,self.group2)
                     }
+                    print(euo_info)
                     euolist.append(euo_info)
                 euolist.sort(key=lambda x: x['Euclidean_distance'])
                 min_point2 = euolist[0]['point2']
+                print(min_point2)
                 v_21 = min_point2-min_point1
                 R = svd_rotation_matrix(v21,v_21)
                 a3sys = copy.deepcopy(a3.atoms)
