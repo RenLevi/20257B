@@ -59,7 +59,7 @@ def read_file_line_by_line(file_path):#逐行读取txt文件并返回list数据
             reaction_list.append(string)
         reaction_list.pop(0)
     return reaction_list
-def collect_Alljson(path_d,path_test,check_json,batch):
+'''def collect_Alljson(path_d,path_test,check_json,batch):
     jobsubopt = f'{path_test}/jobsub/opt'
     record_all_p = f'{path_d}record_adscheck.json'
     with open (record_all_p,'w') as j1:
@@ -90,7 +90,7 @@ def collect_Alljson(path_d,path_test,check_json,batch):
     if len(d_all) != len(d_check):
         return ValueError('some record loss!!!')
     else:
-        pass
+        pass'''
 class molfile():
     def __init__(self,name,path_test,slab = None,random = 20):
         '''
@@ -214,24 +214,28 @@ class PREforSearchTS():
                 RR = rR.STARTfromBROKENtoBONDED(initial_mol.model_p,add_mol.model_p,final_mol.model_p)
                 RR.site_finder(slab)
                 RR.run(reaction)
-                subfolder = f'{mainfolder}{rlist[0][0]}_{rlist[-1][0]}/'
-                data = {f'{rlist[0][0]}_{rlist[-1][0]}':[reaction,RR.tf]}
-                with open(f'{mainfolder}foldername.json', 'r') as f:
-                    file = f.read()
-                    if len(file)>0:
-                        ne = 'ne'
-                    else:
-                        ne = 'e'
-                if ne == 'ne':
-                    with open (f'{mainfolder}foldername.json','r') as f:
-                        old_data = json.load(f)
+                if RR.IS == False or RR.FS == False:
+                    print(f'{reaction} -- IS{RR.IS} or FS{RR.FS} build wrong')
                 else:
-                    old_data ={}
-                old_data.update(data)
-                with open(f'{mainfolder}foldername.json', 'w') as f:
-                    json.dump(old_data,f,indent=2)
-                os.makedirs(subfolder, exist_ok=True)
-                RR.save(subfolder,'POSCAR')
+                    ISNNSYS,FSNNSYS=RR.NNsystemInfo()
+                    subfolder = f'{mainfolder}{rlist[0][0]}_{rlist[-1][0]}/'
+                    data = {f'{rlist[0][0]}_{rlist[-1][0]}':[reaction,RR.tf,RR.bondatoms,ISNNSYS.bms.smiles,FSNNSYS.bms.smiles]}
+                    with open(f'{mainfolder}foldername.json', 'r') as f:
+                        file = f.read()
+                        if len(file)>0:
+                            ne = 'ne'
+                        else:
+                            ne = 'e'
+                    if ne == 'ne':
+                        with open (f'{mainfolder}foldername.json','r') as f:
+                            old_data = json.load(f)
+                    else:
+                        old_data ={}
+                    old_data.update(data)
+                    with open(f'{mainfolder}foldername.json', 'w') as f:
+                        json.dump(old_data,f,indent=2)
+                    os.makedirs(subfolder, exist_ok=True)
+                    RR.save(subfolder,'POSCAR')
         with open(f'{mainfolder}foldername.json', 'r') as f:
             self.d = json.load(f)               
     def start_split(self,batch):
