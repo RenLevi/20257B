@@ -4,6 +4,7 @@ import json
 import os
 #NEB搜索过渡态#并列执行
 Pre4TS = pre4TS.PREforSearchTS('/public/home/ac877eihwp/renyq/C2/test/')
+pre4TS.collect_Alljson('/public/home/ac877eihwp/renyq/C2/test/opt/system/','/public/home/ac877eihwp/renyq/C2/test/','/public/home/ac877eihwp/renyq/C2/test/opt/system/folder_name.json',10)
 Pre4TS.readDataPath()
 Pre4TS.buildmodel('/public/home/ac877eihwp/renyq/C2/test/RN/reactionslist.txt')
 Pre4TS.start_split(10)

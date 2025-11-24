@@ -12,7 +12,126 @@ from ase import Atoms
 from scipy.optimize import linear_sum_assignment
 from scipy.spatial.distance import cdist
 from collections import defaultdict
-#import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt
+def svd_rotation_matrix(a, b):
+    """
+    使用SVD分解计算旋转矩阵
+    
+    参数:
+    a, b: 三维单位向量 (numpy数组)
+    
+    返回:
+    R: 3x3旋转矩阵
+    """
+    # 确保输入是单位向量
+    a = a / np.linalg.norm(a)
+    b = b / np.linalg.norm(b)
+    
+    # 计算协方差矩阵
+    H = np.outer(a, b)
+    
+    # SVD分解
+    U, S, Vt = np.linalg.svd(H)
+    
+    # 计算旋转矩阵
+    R = np.dot(Vt.T, U.T)
+    
+    # 处理反射情况
+    if np.linalg.det(R) < 0:
+        Vt[2, :] *= -1
+        R = np.dot(Vt.T, U.T)
+    return R
+'''def rotate_vector_to_target(A, B):
+    """
+    计算将向量A旋转到与向量B同向的旋转矩阵
+    
+    参数:
+        A: 原始向量 (numpy array)
+        B: 目标向量 (numpy array)
+    
+    返回:
+        rotation_matrix: 旋转矩阵
+    """
+    # 归一化向量
+    A_norm = A / np.linalg.norm(A)
+    B_norm = B / np.linalg.norm(B)
+    
+    # 计算旋转轴（垂直于A和B的向量）
+    rotation_axis = np.cross(A_norm, B_norm)
+    
+    # 如果A和B已经同向或反向，旋转轴为零向量，直接返回单位矩阵
+    if np.linalg.norm(rotation_axis) < 1e-10:
+        # 检查是同向还是反向
+        if np.dot(A_norm, B_norm) > 0:
+            return np.eye(3)  # 同向，不需要旋转
+        else:
+            # 反向，需要旋转180度，可以选择任意垂直轴
+            # 找一个与A垂直的向量
+            if abs(A_norm[0]) > 1e-10 or abs(A_norm[1]) > 1e-10:
+                temp_vec = np.array([-A_norm[1], A_norm[0], 0])
+            else:
+                temp_vec = np.array([0, -A_norm[2], A_norm[1]])
+            rotation_axis = temp_vec / np.linalg.norm(temp_vec)
+    
+    rotation_axis = rotation_axis / np.linalg.norm(rotation_axis)
+    
+    # 计算旋转角度
+    cos_angle = np.dot(A_norm, B_norm)
+    cos_angle = np.clip(cos_angle, -1.0, 1.0)  # 防止浮点误差
+    angle = np.arccos(cos_angle)
+    
+    # 使用罗德里格斯旋转公式计算旋转矩阵
+    K = np.array([
+        [0, -rotation_axis[2], rotation_axis[1]],
+        [rotation_axis[2], 0, -rotation_axis[0]],
+        [-rotation_axis[1], rotation_axis[0], 0]
+    ])
+    
+    rotation_matrix = (np.eye(3) + 
+                      np.sin(angle) * K + 
+                      (1 - np.cos(angle)) * np.dot(K, K))
+    
+    return rotation_matrix'''
+def rotate_point_set(points, A, B, center=None):
+    """
+    旋转点集使得向量A与向量B同向
+    
+    参数:
+        points: 点集 (n x 3 numpy array)
+        A: 原始向量
+        B: 目标向量
+        center: 旋转中心，如果为None则使用点集中心
+    
+    返回:
+        rotated_points: 旋转后的点集
+        rotation_matrix: 使用的旋转矩阵
+    """
+    # 计算旋转矩阵
+    rotation_matrix = svd_rotation_matrix(A,B)#rotate_vector_to_target(A, B)
+    
+    # 确定旋转中心
+    if center is None:
+        center = np.mean(points, axis=0)
+    
+    # 将点集平移到旋转中心，旋转，再平移回去
+    translated_points = points - center
+    rotated_translated_points = np.dot(translated_points, rotation_matrix.T)
+    rotated_points = rotated_translated_points + center
+    
+    return rotated_points, rotation_matrix
+def verify_rotation(original_A, rotated_A, target_B):
+    """验证旋转是否正确"""
+    original_A_norm = original_A / np.linalg.norm(original_A)
+    rotated_A_norm = rotated_A / np.linalg.norm(rotated_A)
+    target_B_norm = target_B / np.linalg.norm(target_B)
+    
+    dot_product = np.dot(rotated_A_norm, target_B_norm)
+    angle = np.arccos(np.clip(dot_product, -1.0, 1.0)) * 180 / np.pi
+    
+    print(f"旋转后向量与目标向量的夹角: {angle:.6f} 度")
+    print(f"方向一致性: {dot_product:.10f} (应该接近1.0)")
+    
+    return abs(dot_product - 1.0) < 1e-10
 def element_constrained_hungarian(atoms_A, atoms_B):
     """
     使用匈牙利算法匹配两个ASE结构中的原子，确保只有相同元素的原子才会匹配
@@ -476,6 +595,7 @@ class DistanceQuery:
                 dist = np.linalg.norm(self.points[idx] - query_point)
                 if  np.abs(dist - target_distance) < tolerance:
                     result_indices.append(idx)
+        print(result_indices)
         return result_indices
     
     def find_all_distances(self, query_point):
@@ -500,34 +620,6 @@ def find_site(atoms,adsatom:list,finder:SurfaceSiteFinder):
         site_type = site_types[atom_indices]
         out.append([nearest, distance,adsA.id,atom_indices,site_type, vector])
     return out
-def svd_rotation_matrix(a, b):
-    """
-    使用SVD分解计算旋转矩阵
-    
-    参数:
-    a, b: 三维单位向量 (numpy数组)
-    
-    返回:
-    R: 3x3旋转矩阵
-    """
-    # 确保输入是单位向量
-    a = a / np.linalg.norm(a)
-    b = b / np.linalg.norm(b)
-    
-    # 计算协方差矩阵
-    H = np.outer(a, b)
-    
-    # SVD分解
-    U, S, Vt = np.linalg.svd(H)
-    
-    # 计算旋转矩阵
-    R = np.dot(Vt.T, U.T)
-    
-    # 处理反射情况
-    if np.linalg.det(R) < 0:
-        Vt[2, :] *= -1
-        R = np.dot(Vt.T, U.T)
-    return R
 def Euclidean_distance(R1:Atoms, R2:Atoms):
     """
     计算两组结构的欧氏距离
@@ -671,7 +763,6 @@ def checkbond_a3(reaction:list,a1,a3):
         bonds = cs12[0].GetBonds()
         AA=addATOM()
         aset = {AA,bondedatom}
-        print(aset)
         check=100
         outlist = [None,None,None,None]
         for bond in bonds:
@@ -768,7 +859,6 @@ def checkbond_a1a2(reaction:list,a1,a2,a3):
                 rwmol = Chem.RWMol(mol_broken)
                 ida1 = adsA1.id-64
                 ida2 = adsA2.id-64+mol1.GetNumAtoms()
-                print(ida1,ida2,adsA1.id,adsA2.id)
                 rwmol.AddBond(ida1, ida2, Chem.BondType.SINGLE)
                 if Chem.MolToSmiles(rwmol) == Chem.MolToSmiles(mol3):
                     return adsA1.id,adsA2.id,'ad2ad',(ida1,ida2)
@@ -845,6 +935,7 @@ class STARTfromBROKENtoBONDED():
         self.special_vectors = special_vector
         return self.site
     def run(self,reaction:str):
+        
         print(reaction)
         self.r = str2list(reaction)
         (atoms1,atoms2,atoms3)=self.atoms
@@ -852,6 +943,7 @@ class STARTfromBROKENtoBONDED():
         a1.RunCheckNN_FindSite(atoms1,self.site)
         a2.RunCheckNN_FindSite(atoms2,self.site)
         a3.RunCheckNN_FindSite(atoms3,self.site)
+        NUMmetal = a1.bms.metal
         top = {}
         bridge = {}
         hcc = {}
@@ -899,9 +991,8 @@ class STARTfromBROKENtoBONDED():
                     sai = bridgesitekl[result_idxlist[0]]
                     spv = self.special_vectors[sai]
                     v_trans = sp4a2-a2sp
-                    R = svd_rotation_matrix(a2spv,spv)
-                    for a in mola2:
-                        a.position = np.dot(R,a.position)
+                    rotated_points,R = rotate_point_set(mola2.positions,a2spv,spv,a2sp)
+                    mola2.positions = rotated_points
                     mola2.positions += v_trans
                     a1a2sys = base_mol+mola2
                 else:
@@ -917,7 +1008,7 @@ class STARTfromBROKENtoBONDED():
                 a2_ads_data = a2.ads_data
                 site1 = a2_ads_data[0]
                 site2 = a2_ads_data[-1]#[nearest, distance,adsA.id,atom_indices,site_type, vector]
-                v21 = site1[0]- site2[0]
+                v21 = site2[0]- site1[0]
                 distsite12=np.linalg.norm(site1[0]- site2[0])
                 sitepldict = {'top':topsitepl,'bridge':bridegsitepl,'3th_multifold':hccsitepl}
                 DQ4site1 = DistanceQuery(sitepldict[site1[-2]])
@@ -931,10 +1022,9 @@ class STARTfromBROKENtoBONDED():
                 for id  in site2_idxlist:
                     point2 = sitepldict[site2[-2]][id]
                     v_21 = point2-min_point1
-                    R = svd_rotation_matrix(v21,v_21)
                     mola2 = copy.deepcopy(a2.only_mol)
-                    for a in mola2:
-                        a.position = np.dot(R,a.position)
+                    rotated_points,R = rotate_point_set(mola2.positions,v21,v_21,site1[0])
+                    mola2.positions =rotated_points
                     mola2.positions += v_trans
                     nbad_info = {
                     'id':id,
@@ -945,13 +1035,12 @@ class STARTfromBROKENtoBONDED():
                 euolist.sort(key=lambda x: x['SUM_dist'])
                 max_point2 = euolist[-1]['point2']
                 v_21 = max_point2-max_point1
-                R = svd_rotation_matrix(v21,v_21)
                 mola2 = copy.deepcopy(a2.only_mol)
-                indices_to_mol = [atom.index for atom in a3sys if atom.symbol != 'Ru']
-                for a in mola2:
-                    a.position = np.dot(R,a.position)
+                rotated_points,R = rotate_point_set(mola2.positions,v21,v_21,site1[0])
+                mola2.positions =rotated_points
                 mola2.positions += v_trans
                 a1a2sys = base_mol+mola2
+            
             indices_to_mol = [atom.index for atom in a1a2sys if atom.symbol != 'Ru']
             a1a2sys_only_mol = copy.deepcopy(a1a2sys[indices_to_mol])
             a3_only_mol = copy.deepcopy(a3.only_mol)
@@ -965,10 +1054,9 @@ class STARTfromBROKENtoBONDED():
             v_core_a3 = beginPOS-endPOS
             #移动a3中的分子
             v_trans = a1a2_center-a3_center
-            R = svd_rotation_matrix(v_core_a3,v_core_a1a2)
-            a3_only_mol.positions+=v_trans
-            for a in a3_only_mol:
-                a.position = np.dot(R,a.position)
+            rotated_points,R = rotate_point_set(a3_only_mol.positions,v_core_a3,v_core_a1a2,a3_center)
+            a3_only_mol.positions=rotated_points
+            a3_only_mol.positions += v_trans
             matches, total_dist = element_constrained_hungarian(a3_only_mol, a1a2sys_only_mol)
             '''
             match_info = {
@@ -1003,44 +1091,51 @@ class STARTfromBROKENtoBONDED():
                 else:
                     sitepl = bridegsitepl
                     a3spv = self.special_vectors[atom_indices]
+                    a3sp = self.site_positions[atom_indices]
                     min_point, _, min_index = find_min_sum_distance_point_vectorized(sitepl,mainPOS,subPOS)
                     sai = bridgesitekl[min_index]
                     spv = self.special_vectors[sai]
                     v_trans = min_point - nearest
-                    R1 = svd_rotation_matrix(a3spv,spv)
                     a3sys = copy.deepcopy(a3.atoms)
+                    a3_only_mol = copy.deepcopy(a3.only_mol)
+                    rotated_pointsR1,R1 = rotate_point_set(a3_only_mol.positions,a3spv,spv,a3sp)
                     indices_to_mol = [atom.index for atom in a3sys if atom.symbol != 'Ru']
                     for id in indices_to_mol:
+                        a3sys[id].position = rotated_pointsR1[id-NUMmetal]
                         a3sys[id].position += v_trans
-                        a3sys[id].position = np.dot(R1,a3sys[id].position)
                     eou1 =Euclidean_distance(a3sys,self.group2)
-                    R2 = svd_rotation_matrix(a3spv,-spv)
                     a3sys = copy.deepcopy(a3.atoms)
+                    a3_only_mol = copy.deepcopy(a3.only_mol)
+                    rotated_pointsR2,R2 = rotate_point_set(a3_only_mol.positions,a3spv,-spv,a3sp)
                     indices_to_mol = [atom.index for atom in a3sys if atom.symbol != 'Ru']
                     for id in indices_to_mol:
+                        a3sys[id].position = rotated_pointsR2[id-NUMmetal]
                         a3sys[id].position += v_trans
-                        a3sys[id].position = np.dot(R2,a3sys[id].position)
                     eou2 =Euclidean_distance(a3sys,self.group2)
                     if eou1 <= eou2:
                         a3sys = copy.deepcopy(a3.atoms)
                         indices_to_mol = [atom.index for atom in a3sys if atom.symbol != 'Ru']
                         for id in indices_to_mol:
+                            a3sys[id].position = rotated_pointsR1[id-NUMmetal]
                             a3sys[id].position += v_trans
-                            a3sys[id].position = np.dot(R1,a3sys[id].position)
+                            
                     else:
                         a3sys = copy.deepcopy(a3.atoms)
                         indices_to_mol = [atom.index for atom in a3sys if atom.symbol != 'Ru']
                         for id in indices_to_mol:
+                            a3sys[id].position = rotated_pointsR2[id-NUMmetal]
                             a3sys[id].position += v_trans
-                            a3sys[id].position = np.dot(R2,a3sys[id].position)
+                            
             elif len(a3_ads_data) < 1:
                 a3sys = copy.deepcopy(a3.atoms)
                 indices_to_mol = [atom.index for atom in a3sys if atom.symbol != 'Ru']
                 v_trans = a1a2_center-a3_center
-                R = svd_rotation_matrix(v_core_a3,v_core_a1a2)
+                a3_only_mol = copy.deepcopy(a3.only_mol)
+                rotated_points,R = rotate_point_set(a3_only_mol.positions,v_core_a3,v_core_a1a2,a3_center)
                 for id in indices_to_mol:
-                    a3sys[id].position += np.array([v_trans[0],v_trans[1],0])
-                    a3sys[id].position = np.dot(R,a3sys[id].position)
+                    a3sys[id].position = rotated_points[id-NUMmetal]
+                    a3sys[id].position += v_trans#np.array([v_trans[0],v_trans[1],0])
+                    
             elif len(a3_ads_data) > 1:
                 site1 = a3_ads_data[0]
                 site2 = a3_ads_data[1]#[nearest, distance,adsA.id,atom_indices,site_type, vector]
@@ -1048,42 +1143,42 @@ class STARTfromBROKENtoBONDED():
                 distsite12=np.linalg.norm(site1[0]- site2[0])
                 sitepldict = {'top':topsitepl,'bridge':bridegsitepl,'3th_multifold':hccsitepl}
                 min_point1, _, _ = find_min_sum_distance_point_vectorized(sitepldict[site1[-2]],mainPOS,subPOS)
-                print(min_point1)
                 v_trans = min_point1-site1[0]
                 DQ4site2 = DistanceQuery(sitepldict[site2[-2]])
                 site2_idxlist=DQ4site2.find_points_at_distance(min_point1,distsite12,tolerance=1,opt=0)
-                
                 assert len(site2_idxlist) != 0
                 euolist = []
                 for id  in site2_idxlist:
                     point2 = sitepldict[site2[-2]][id]
                     v_21 = point2-min_point1
-                    R = svd_rotation_matrix(v21,v_21)
+                    a3_only_mol = copy.deepcopy(a3.only_mol)
                     a3sys = copy.deepcopy(a3.atoms)
+                    rotated_points,R = rotate_point_set(a3_only_mol.positions,v21,v_21,site1[0])
                     indices_to_mol = [atom.index for atom in a3sys if atom.symbol != 'Ru']
                     for aid in indices_to_mol:
+                        a3sys[aid].position = rotated_points[aid-NUMmetal]
                         a3sys[aid].position += v_trans
-                        a3sys[aid].position = np.dot(R,a3sys[aid].position)
+                        
                     euo_info = {
                     'id':id,
                     'point2':point2,
                     'Euclidean_distance':Euclidean_distance(a3sys,self.group2)
                     }
-                    print(euo_info)
                     euolist.append(euo_info)
                 euolist.sort(key=lambda x: x['Euclidean_distance'])
                 min_point2 = euolist[0]['point2']
-                print(min_point2)
                 v_21 = min_point2-min_point1
-                R = svd_rotation_matrix(v21,v_21)
+                rotated_points,R = rotate_point_set(a3_only_mol.positions,v21,v_21,site1[0])
                 a3sys = copy.deepcopy(a3.atoms)
                 indices_to_mol = [atom.index for atom in a3sys if atom.symbol != 'Ru']
                 for id in indices_to_mol:
+                    a3sys[id].position = rotated_points[id-NUMmetal]
                     a3sys[id].position += v_trans
-                    a3sys[id].position = np.dot(R,a3sys[id].position)
+                    
             else:print('怎么可能吸附位点数量同时不满足大于1，等于1，小于1；它是分数吗')
             self.group1 = a3sys
-            return self.group2,self.group1
+            self.a3onlymol=base_mol+a3sys
+            return self.group2,self.group1 
         print(a1.bms.smiles,len(a1.ads_data),a2.bms.smiles,len(a2.ads_data))
         self.IS,self.FS = warp(self.r,a1,a2,a3)
         return self.IS,self.FS
@@ -1093,6 +1188,7 @@ class STARTfromBROKENtoBONDED():
             if self.IS != False:
                 write(path+'IS.vasp', self.IS, format='vasp', vasp5=True)  # vasp5=True添加元素名称
                 write(path+'FS.vasp', self.FS, format='vasp', vasp5=True)  # vasp5=True添加元素名称
+                write(path+'a1a2a3.vasp', self.a3onlymol, format='vasp', vasp5=True)
             else:
                 print('the Reaction wrong')
         else:

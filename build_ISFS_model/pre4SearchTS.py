@@ -177,6 +177,7 @@ class PREforSearchTS():
             mf = molfile(file,self.mainfolder,self.slab)
             self.file[file] = mf
             count_file +=1
+            print(f'{file}:{count_file}')
         if count_file != len(folder_dict):
             ValueError  
         else:pass
@@ -247,13 +248,15 @@ class PREforSearchTS():
             foldersplit.append(il)
         self.fsp = foldersplit
         return foldersplit
-    
-class SearchTS4All(PREforSearchTS):
+
+
+
+'''class SearchTS4All(PREforSearchTS):
     def __init__(self,path_test):
         self.neb = path_test+'RDA_S/'
         with open(f'{self.neb}foldername.json', 'r') as f:
             self.d = json.load(f)
-
+'''
 
 
 
