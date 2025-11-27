@@ -570,9 +570,10 @@ class DistanceQuery:
     
     def find_points_at_distance(self, query_point, target_distance, tolerance=0.5,opt=1):
         """
-        使用KDTree高效查找特定距离的点
-        
-        策略：先找到半径范围内的点，再精确筛选
+        query_point: 查询点 (numpy数组)
+        target_distance: 目标距离 (float)
+        tolerance: 容差范围 (float)
+        opt: 1表示查找target_distance+tolerance的点,0表示查找等于target_distance的点
         """
         # 搜索半径范围 [target_distance - tolerance, target_distance + tolerance]
         min_dist = max(0, target_distance - tolerance)
@@ -631,7 +632,7 @@ def cal_dist_between_nobondedatoms(o1p,a2):
     for atom2 in a2:
         d+=np.linalg.norm(atom2-o1p)
     return d
-def find_min_sum_distance_point_vectorized(points,point_a,point_b,w_a,w_b):
+def find_min_sum_distance_point_vectorized(points,point_a,point_b,w_a=0.5,w_b=0.5):
     """
     使用向量化计算找到到两点距离和最小的点（更高效）
     
@@ -655,7 +656,7 @@ def find_min_sum_distance_point_vectorized(points,point_a,point_b,w_a,w_b):
     min_distance = total_dists[min_index]
     return min_point, min_distance, min_index
 
-def find_max_sum_distance_point_vectorized(points, point_a, point_b):
+def find_max_sum_distance_point_vectorized(points, point_a, point_b,w_a=0.5,w_b=0.5):
     """
     使用向量化计算找到到两点距离和最大的点（更高效）
     
@@ -671,7 +672,7 @@ def find_max_sum_distance_point_vectorized(points, point_a, point_b):
     # 向量化计算所有点到point_a和point_b的距离
     dist_a = np.linalg.norm(points - point_a, axis=1)
     dist_b = np.linalg.norm(points - point_b, axis=1)
-    total_dists = dist_a + dist_b
+    total_dists = w_a*dist_a + w_b*dist_b
     
     # 找到最小值的索引
     max_index = np.argmax(total_dists)
@@ -902,7 +903,7 @@ class NN_system():
         indices_to_mol = [atom.index for atom in atoms if atom.symbol != 'Ru']
         self.only_mol = atoms[indices_to_mol]
         self.ads_data = find_site(cb.poscar,cb.adsorption,finder)
-        print(self.ads_data)
+        #print(self.ads_data)
         return self
         
 """
@@ -955,8 +956,9 @@ class STARTfromBROKENtoBONDED():
         def warp(rl,a1,a2,a3):
             o1,o2,self.tf,ids_mol = checkbond_a1a2(rl,a1,a2,a3)#id in atoms
             bid_mol,eid_mol,_,_ = checkbond_a3(rl,a1,a3)
-            if o1 == False or o2 == False:
-                return False,False
+            assert o1 == False or o2 == False or bid_mol == False or eid_mol == False
+            '''if o1 == False or o2 == False:
+                return False,False'''
             self.bondatoms = [bid_mol,eid_mol]
             base_mol = a1.atoms
             total_atoms = len(base_mol)
@@ -1008,7 +1010,7 @@ class STARTfromBROKENtoBONDED():
                 bap_a1 = base_mol[o1].position
                 a2_ads_data = a2.ads_data
                 site1 = a2_ads_data[0]
-                site2 = a2_ads_data[-1]#[nearest, distance,adsA.id,atom_indices,site_type, vector]
+                site2 = a2_ads_data[-1]#[nearest,distance,adsA.id,atom_indices,site_type, vector]
                 v21 = site2[0]- site1[0]
                 distsite12=np.linalg.norm(site1[0]- site2[0])
                 sitepldict = {'top':topsitepl,'bridge':bridegsitepl,'3th_multifold':hccsitepl}
