@@ -13,6 +13,7 @@ from scipy.optimize import linear_sum_assignment
 from scipy.spatial.distance import cdist
 from collections import defaultdict
 import matplotlib.pyplot as plt
+import ase
 def svd_rotation_matrix(a, b):
     """
     使用SVD分解计算旋转矩阵
@@ -655,7 +656,6 @@ def find_min_sum_distance_point_vectorized(points,point_a,point_b,w_a=0.5,w_b=0.
     min_point = points[min_index]
     min_distance = total_dists[min_index]
     return min_point, min_distance, min_index
-
 def find_max_sum_distance_point_vectorized(points, point_a, point_b,w_a=0.5,w_b=0.5):
     """
     使用向量化计算找到到两点距离和最大的点（更高效）
@@ -877,6 +877,50 @@ def checkbond_a1a2(reaction:list,a1,a2,a3):
                     return A1.id,adsA2.id,'Nad2ad',(ida1,ida2)
                 else:pass
     return False,False,False,False
+def rotate_mol_find_best_distance(a2,a1,step_degree=60,opt = 'min',center=None):
+    """
+    旋转分子以找到与另一个分子之间的最小距离配置
+    
+    参数:
+    atoms1: ASE Atoms 对象，表示第一个分子
+    atoms2: ASE Atoms 对象，表示第二个分子
+    step_degree: 每次旋转的角度步长（度）
+    
+    返回:
+    min_distance: 最小距离
+    best_atoms1: 旋转后的第一个分子配置
+    """
+    if opt == 'min':
+        check_distance = float('inf')
+    elif opt == 'max':
+        check_distance = 0
+    best_rotate = None
+    best_model = None
+    # 将角度转换为弧度
+    step_radian = np.radians(step_degree)
+    # 遍历所有旋转角度组合
+    for alpha in np.arange(0, 2 * np.pi, step_radian):
+                # 创建旋转矩阵
+                rotation_axis = [0, 0, 1]  # Z轴向量
+                # 复制并旋转第一个分子
+                rotated_a2 = a2.copy()
+                rotated_a2.rotate(rotation_axis, alpha, rotate_cell=False)
+                # 计算两分子之间的距离
+                dist = np.linalg.norm(a1.positions-rotated_a2.get_center_of_mass(),axis=1)
+                total_sum = np.sum(dist)
+                # 更新最小距离和最佳配置
+                if opt == 'max':
+                    if  total_sum > check_distance:
+                        check_distance = total_sum
+                        best_rotate = alpha
+                        best_model = rotated_a2
+                elif opt == 'min':
+                    if  total_sum < check_distance:
+                        check_distance = total_sum
+                        best_rotate = alpha
+                        best_model = rotated_a2
+                    
+    return check_distance,best_model ,best_rotate
 class NN_system():
     def __init__(self):
         self.cb = None
@@ -956,7 +1000,8 @@ class STARTfromBROKENtoBONDED():
         def warp(rl,a1,a2,a3):
             o1,o2,self.tf,ids_mol = checkbond_a1a2(rl,a1,a2,a3)#id in atoms
             bid_mol,eid_mol,_,_ = checkbond_a3(rl,a1,a3)
-            assert o1 == False or o2 == False or bid_mol == False or eid_mol == False
+            print(o1,o2,bid_mol,eid_mol)
+            assert o1 == False or o2 == False or bid_mol == None or eid_mol == None
             '''if o1 == False or o2 == False:
                 return False,False'''
             self.bondatoms = [bid_mol,eid_mol]
@@ -975,6 +1020,7 @@ class STARTfromBROKENtoBONDED():
                 a2zv=a2_ads_data0[-1]#vector
                 a2st=a2_ads_data0[-2]#site_type
                 a2ai=a2_ads_data0[-3]#atom_indices
+                a2ads = a2_ads_data0[2]#adsA.id
                 a2sp=self.site_positions[a2ai]
                 a2spv= self.special_vectors[a2ai]
                 if a2st == 'top':
@@ -984,7 +1030,8 @@ class STARTfromBROKENtoBONDED():
                     _,sp4a2 = select_site_with_max_dist(result_idxlist,base_mol,topsitepl,o1)
                     v_trans = sp4a2-a2sp
                     mola2.positions += v_trans
-                    a1a2sys = base_mol+mola2
+                    _,best,_ = rotate_mol_find_best_distance(mola2,a1.only_mol,step_degree=60,opt='max',center=mola2.positions[a2ads - NUMmetal])
+                    a1a2sys = base_mol+best
                 elif a2st == 'bridge':
                     bap_a1 = base_mol[o1].position
                     DQ = DistanceQuery(bridegsitepl)
@@ -996,7 +1043,8 @@ class STARTfromBROKENtoBONDED():
                     rotated_points,R = rotate_point_set(mola2.positions,a2spv,spv,a2sp)
                     mola2.positions = rotated_points
                     mola2.positions += v_trans
-                    a1a2sys = base_mol+mola2
+                    _,best,_ = rotate_mol_find_best_distance(mola2,a1.only_mol,step_degree=180,opt='max',center=mola2.positions[a2ads - NUMmetal])
+                    a1a2sys = base_mol+best
                 else:
                     bap_a1 = base_mol[o1].position
                     DQ = DistanceQuery(hccsitepl)
@@ -1004,7 +1052,8 @@ class STARTfromBROKENtoBONDED():
                     _,sp4a2 = select_site_with_max_dist(result_idxlist,base_mol,hccsitepl,o1)
                     v_trans = sp4a2-a2sp
                     mola2.positions += v_trans
-                    a1a2sys = base_mol+mola2
+                    _,best,_ = rotate_mol_find_best_distance(mola2,a1.only_mol,step_degree=60,opt='max',center=mola2.positions[a2ads - NUMmetal])
+                    a1a2sys = base_mol+best
             elif len(a2.ads_data) > 1:
                 print('multiple site adsorption for add group(a2)')
                 bap_a1 = base_mol[o1].position
@@ -1085,17 +1134,19 @@ class STARTfromBROKENtoBONDED():
                         sitepl = topsitepl
                     else:
                         sitepl = hccsitepl
-                    min_point, _, _ = find_min_sum_distance_point_vectorized(sitepl,mainPOS,subPOS)
+                    min_point, _, _ = find_min_sum_distance_point_vectorized(sitepl,mainPOS,subPOS,w_a=0.8,w_b=0.2)
                     v_trans = min_point - nearest
                     a3sys = copy.deepcopy(a3.atoms)
                     indices_to_mol = [atom.index for atom in a3sys if atom.symbol != 'Ru']
-                    for id in indices_to_mol:
-                        a3sys[id].position += v_trans
+                    a3_only_mol = copy.deepcopy(a3.only_mol)
+                    a3_only_mol.positions += v_trans
+                    _,best,_ = rotate_mol_find_best_distance(a3_only_mol,a1a2sys_only_mol,step_degree=60,opt='min',center=a3_only_mol.positions[adsAid - NUMmetal])  
+                    a3sys = self.slab+best   
                 else:
                     sitepl = bridegsitepl
                     a3spv = self.special_vectors[atom_indices]
                     a3sp = self.site_positions[atom_indices]
-                    min_point, _, min_index = find_min_sum_distance_point_vectorized(sitepl,mainPOS,subPOS)
+                    min_point, _, min_index = find_min_sum_distance_point_vectorized(sitepl,mainPOS,subPOS,w_a=0.8,w_b=0.2)
                     sai = bridgesitekl[min_index]
                     spv = self.special_vectors[sai]
                     v_trans = min_point - nearest
@@ -1147,7 +1198,7 @@ class STARTfromBROKENtoBONDED():
                 v21 = site2[0]- site1[0]
                 distsite12=np.linalg.norm(site1[0]- site2[0])
                 sitepldict = {'top':topsitepl,'bridge':bridegsitepl,'3th_multifold':hccsitepl}
-                min_point1, _, _ = find_min_sum_distance_point_vectorized(sitepldict[site1[-2]],mainPOS,subPOS)
+                min_point1, _, _ = find_min_sum_distance_point_vectorized(sitepldict[site1[-2]],mainPOS,subPOS,w_a=0.9,w_b=0.1)
                 v_trans = min_point1-site1[0]
                 DQ4site2 = DistanceQuery(sitepldict[site2[-2]])
                 site2_idxlist=DQ4site2.find_points_at_distance(min_point1,distsite12,tolerance=0.5,opt=0)
