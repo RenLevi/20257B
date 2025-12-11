@@ -1001,7 +1001,7 @@ class STARTfromBROKENtoBONDED():
             o1,o2,self.tf,ids_mol = checkbond_a1a2(rl,a1,a2,a3)#id in atoms
             bid_mol,eid_mol,_,_ = checkbond_a3(rl,a1,a3)
             print(o1,o2,bid_mol,eid_mol)
-            assert o1 == False or o2 == False or bid_mol == None or eid_mol == None
+            assert o1 != False and o2 != False and bid_mol != None and eid_mol != None
             '''if o1 == False or o2 == False:
                 return False,False'''
             self.bondatoms = [bid_mol,eid_mol]
@@ -1124,6 +1124,7 @@ class STARTfromBROKENtoBONDED():
             for match_info in matches:
                 new_order.append(match_info['index_B'])
             a1a2sys_only_mol = a1a2sys_only_mol[new_order]
+            
             self.group2 = self.slab+a1a2sys_only_mol
             a3_ads_data = a3.ads_data
             if len(a3_ads_data) == 1:
@@ -1240,6 +1241,7 @@ class STARTfromBROKENtoBONDED():
             return self.group2,self.group1 
         #print(a1.bms.smiles,len(a1.ads_data),a2.bms.smiles,len(a2.ads_data))
         self.IS,self.FS = warp(self.r,a1,a2,a3)
+        print(f'finish:{reaction}')
         return self.IS,self.FS
     def NNsystemInfo(self):
         ismodel = NN_system()
