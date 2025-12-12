@@ -10,10 +10,763 @@ import re
 from rdkit import Chem
 from ase import Atoms
 from scipy.optimize import linear_sum_assignment
-from scipy.spatial.distance import cdist
 from collections import defaultdict
 import matplotlib.pyplot as plt
+import numpy as np
+from scipy.spatial.distance import cdist, pdist, squareform
+from scipy.spatial.transform import Rotation as R
+from scipy.optimize import linear_sum_assignment, minimize
 import ase
+from typing import Tuple, List, Dict, Optional, Any
+import itertools
+from collections import defaultdict, Counter
+class EnhancedPointSetMatcher:
+    """
+    增强的三维点集匹配器，考虑整体结构和元素间相对距离
+    """
+    
+    def __init__(self, reference_points: np.ndarray, 
+                 reference_symbols: Optional[List[str]] = None):
+        """
+        初始化参考点集
+        
+        参数:
+        reference_points: (N, 3) 形状的numpy数组，N个三维点
+        reference_symbols: 可选的元素符号列表
+        """
+        self.reference_points = np.asarray(reference_points)
+        self.n_points = len(reference_points)
+        self.reference_symbols = reference_symbols
+        
+        if reference_symbols is not None:
+            if len(reference_symbols) != self.n_points:
+                raise ValueError("元素符号数量必须与点数量相同")
+            self._setup_element_groups()
+            # 计算参考结构的距离矩阵
+            self.reference_distance_matrix = self._compute_distance_matrix(self.reference_points)
+            # 计算参考结构的相对距离特征
+            self.reference_distance_features = self._compute_distance_features()
+    
+    def _setup_element_groups(self):
+        """按元素分组"""
+        self.element_groups = {}
+        self.element_indices = {}
+        for symbol in set(self.reference_symbols):
+            indices = [i for i, s in enumerate(self.reference_symbols) if s == symbol]
+            self.element_groups[symbol] = self.reference_points[indices]
+            self.element_indices[symbol] = indices
+    
+    def _compute_distance_matrix(self, points: np.ndarray) -> np.ndarray:
+        """计算点间距离矩阵"""
+        return squareform(pdist(points))
+    
+    def _compute_distance_features(self) -> Dict:
+        """计算距离特征，考虑不同元素间的相对距离"""
+        features = {
+            'all_distances': pdist(self.reference_points),
+            'intra_element_distances': {},
+            'inter_element_distances': {}
+        }
+        
+        if self.reference_symbols is None:
+            return features
+        
+        # 计算同种元素内部的距离
+        for symbol in self.element_groups.keys():
+            indices = self.element_indices[symbol]
+            if len(indices) > 1:
+                points = self.reference_points[indices]
+                distances = pdist(points)
+                features['intra_element_distances'][symbol] = distances
+        
+        # 计算不同元素之间的距离
+        symbols = list(self.element_groups.keys())
+        for i in range(len(symbols)):
+            for j in range(i, len(symbols)):
+                symbol1 = symbols[i]
+                symbol2 = symbols[j]
+                
+                if symbol1 == symbol2:
+                    continue
+                
+                indices1 = self.element_indices[symbol1]
+                indices2 = self.element_indices[symbol2]
+                
+                # 计算所有symbol1和symbol2原子间的距离
+                distances = []
+                for idx1 in indices1:
+                    for idx2 in indices2:
+                        dist = np.linalg.norm(self.reference_points[idx1] - self.reference_points[idx2])
+                        distances.append(dist)
+                
+                key = f"{symbol1}-{symbol2}"
+                features['inter_element_distances'][key] = np.array(distances)
+        
+        return features
+    
+    def rotate_points_around_axis(self, points: np.ndarray, 
+                                 axis_point: np.ndarray,
+                                 axis_direction: np.ndarray,
+                                 angle_rad: float) -> np.ndarray:
+        """
+        将点集绕给定轴旋转
+        
+        参数:
+        points: (N, 3) 形状的点集
+        axis_point: 旋转轴上的一个点 (3,)
+        axis_direction: 旋转轴方向向量 (3,)
+        angle_rad: 旋转角度（弧度）
+        
+        返回:
+        旋转后的点集
+        """
+        # 确保轴方向是单位向量
+        axis_direction = axis_direction / np.linalg.norm(axis_direction)
+        
+        # 使用scipy的Rotation类（更稳定）
+        rotation = R.from_rotvec(axis_direction * angle_rad)
+        
+        # 平移点集使旋转轴通过原点
+        translated_points = points - axis_point
+        
+        # 应用旋转
+        rotated_translated = rotation.apply(translated_points)
+        
+        # 平移回原位置
+        rotated_points = rotated_translated + axis_point
+        
+        return rotated_points
+    
+    def compute_distance_similarity(self, points1: np.ndarray, 
+                                   points2: np.ndarray,
+                                   symbols1: Optional[List[str]] = None,
+                                   symbols2: Optional[List[str]] = None,
+                                   weight_intra: float = 1.0,
+                                   weight_inter: float = 1.5) -> Dict[str, Any]:
+        """
+        计算考虑元素间相对距离的相似性
+        
+        参数:
+        points1, points2: 要比较的两个点集
+        symbols1, symbols2: 对应的元素符号
+        weight_intra: 同种元素间距离的权重
+        weight_inter: 不同元素间距离的权重
+        
+        返回:
+        包含各种相似性指标的字典
+        """
+        results = {}
+        
+        # 1. 整体距离相似性
+        overall_distances = np.linalg.norm(points1 - points2, axis=1)
+        results['overall_rmse'] = np.sqrt(np.mean(overall_distances**2))
+        results['overall_max_dist'] = np.max(overall_distances)
+        results['overall_similarity'] = np.exp(-results['overall_rmse'])
+        
+        # 2. 如果提供了元素符号，计算元素间距离相似性
+        if symbols1 is not None and symbols2 is not None:
+            if len(symbols1) != len(points1) or len(symbols2) != len(points2):
+                raise ValueError("元素符号数量必须与点数量相同")
+            
+            # 验证元素类型匹配
+            if Counter(symbols1) != Counter(symbols2):
+                warnings.warn("元素类型分布不匹配，元素间距离相似性可能不准确")
+            
+            # 计算距离矩阵
+            dist_matrix1 = self._compute_distance_matrix(points1)
+            dist_matrix2 = self._compute_distance_matrix(points2)
+            
+            # 距离矩阵相似性
+            dist_diff = np.abs(dist_matrix1 - dist_matrix2)
+            results['distance_matrix_rmse'] = np.sqrt(np.mean(dist_diff**2))
+            results['distance_matrix_similarity'] = np.exp(-results['distance_matrix_rmse'])
+            
+            # 计算同种元素间距离相似性
+            intra_element_similarities = {}
+            symbols_set = set(symbols1)
+            
+            for symbol in symbols_set:
+                indices1 = [i for i, s in enumerate(symbols1) if s == symbol]
+                indices2 = [i for i, s in enumerate(symbols2) if s == symbol]
+                
+                if len(indices1) <= 1:
+                    continue
+                
+                # 计算同种元素间的距离
+                intra_dist1 = dist_matrix1[np.ix_(indices1, indices1)]
+                intra_dist2 = dist_matrix2[np.ix_(indices2, indices2)]
+                
+                # 只取上三角（不包括对角线）
+                mask = np.triu(np.ones_like(intra_dist1, dtype=bool), k=1)
+                dists1 = intra_dist1[mask]
+                dists2 = intra_dist2[mask]
+                
+                if len(dists1) > 0:
+                    intra_rmse = np.sqrt(np.mean((dists1 - dists2)**2))
+                    intra_element_similarities[symbol] = {
+                        'rmse': intra_rmse,
+                        'similarity': np.exp(-intra_rmse * weight_intra),
+                        'num_pairs': len(dists1)
+                    }
+            
+            results['intra_element_similarities'] = intra_element_similarities
+            
+            # 计算不同元素间距离相似性
+            inter_element_similarities = {}
+            
+            for (symbol1, symbol2) in itertools.combinations(symbols_set, 2):
+                indices1_a = [i for i, s in enumerate(symbols1) if s == symbol1]
+                indices1_b = [i for i, s in enumerate(symbols1) if s == symbol2]
+                indices2_a = [i for i, s in enumerate(symbols2) if s == symbol1]
+                indices2_b = [i for i, s in enumerate(symbols2) if s == symbol2]
+                
+                # 计算不同元素间的距离
+                inter_dist1 = dist_matrix1[np.ix_(indices1_a, indices1_b)]
+                inter_dist2 = dist_matrix2[np.ix_(indices2_a, indices2_b)]
+                
+                if inter_dist1.size > 0:
+                    inter_rmse = np.sqrt(np.mean((inter_dist1.flatten() - inter_dist2.flatten())**2))
+                    key = f"{symbol1}-{symbol2}"
+                    inter_element_similarities[key] = {
+                        'rmse': inter_rmse,
+                        'similarity': np.exp(-inter_rmse * weight_inter),
+                        'num_pairs': inter_dist1.size
+                    }
+            
+            results['inter_element_similarities'] = inter_element_similarities
+            
+            # 计算加权平均相似性
+            total_weight = 0
+            weighted_sum = 0
+            
+            for symbol, data in intra_element_similarities.items():
+                weight = data['num_pairs'] * weight_intra
+                weighted_sum += data['similarity'] * weight
+                total_weight += weight
+            
+            for key, data in inter_element_similarities.items():
+                weight = data['num_pairs'] * weight_inter
+                weighted_sum += data['similarity'] * weight
+                total_weight += weight
+            
+            if total_weight > 0:
+                results['weighted_similarity'] = weighted_sum / total_weight
+            else:
+                results['weighted_similarity'] = results['overall_similarity']
+        
+        return results
+    
+    def find_best_match_with_elements(self, input_points: np.ndarray,
+                                     input_symbols: List[str]) -> Tuple[np.ndarray, np.ndarray, Dict]:
+        """
+        考虑元素类型的最佳匹配（点对点对应）
+        
+        参数:
+        input_points: 输入点集
+        input_symbols: 输入点集的元素符号
+        
+        返回:
+        matched_points: 重新排序后的输入点集
+        matched_symbols: 重新排序后的元素符号
+        match_info: 匹配信息
+        """
+        if self.reference_symbols is None:
+            raise ValueError("参考点集必须有元素符号")
+        
+        if len(input_symbols) != len(input_points):
+            raise ValueError("输入元素符号数量必须与点数量相同")
+        
+        # 检查元素类型分布是否匹配
+        ref_counter = Counter(self.reference_symbols)
+        input_counter = Counter(input_symbols)
+        
+        if ref_counter != input_counter:
+            raise ValueError(f"元素类型分布不匹配: 参考={dict(ref_counter)}, 输入={dict(input_counter)}")
+        
+        # 为每种元素类型分别进行匹配
+        all_matched_indices = np.zeros(len(input_points), dtype=int)
+        match_details = {}
+        
+        for symbol in ref_counter.keys():
+            # 获取参考和输入中该元素的索引
+            ref_indices = [i for i, s in enumerate(self.reference_symbols) if s == symbol]
+            input_indices = [i for i, s in enumerate(input_symbols) if s == symbol]
+            
+            # 提取对应点
+            ref_points_symbol = self.reference_points[ref_indices]
+            input_points_symbol = input_points[input_indices]
+            
+            # 计算距离矩阵
+            dist_matrix = cdist(ref_points_symbol, input_points_symbol)
+            
+            # 使用匈牙利算法找到最小成本匹配
+            row_ind, col_ind = linear_sum_assignment(dist_matrix)
+            
+            # 存储匹配结果
+            match_details[symbol] = {
+                'ref_indices': ref_indices,
+                'input_indices': [input_indices[i] for i in col_ind],
+                'distances': dist_matrix[row_ind, col_ind],
+                'avg_distance': dist_matrix[row_ind, col_ind].mean()
+            }
+            
+            # 将匹配结果映射到全局索引
+            for ref_idx, input_idx in zip(ref_indices, [input_indices[i] for i in col_ind]):
+                all_matched_indices[ref_idx] = input_idx
+        
+        # 根据匹配结果重新排序输入点集和元素符号
+        matched_points = input_points[all_matched_indices]
+        matched_symbols = [input_symbols[i] for i in all_matched_indices]
+        
+        # 计算匹配质量
+        total_distance = sum(detail['distances'].sum() for detail in match_details.values())
+        avg_distance = total_distance / len(input_points)
+        
+        match_info = {
+            'matched_indices': all_matched_indices,
+            'match_details': match_details,
+            'total_distance': total_distance,
+            'avg_distance': avg_distance,
+            'similarity': np.exp(-avg_distance)
+        }
+        
+        return matched_points, matched_symbols, match_info
+    
+    def align_whole_structure(self, input_points: np.ndarray,
+                             input_symbols: List[str],
+                             use_elements: bool = True) -> Tuple[np.ndarray, np.ndarray, Dict]:
+        """
+        对齐整个结构，考虑元素类型
+        
+        参数:
+        input_points: 输入点集
+        input_symbols: 输入元素符号
+        use_elements: 是否使用元素类型信息进行匹配
+        
+        返回:
+        aligned_points: 对齐后的点集
+        aligned_symbols: 对齐后的元素符号（重新排序后）
+        alignment_info: 对齐信息
+        """
+        if use_elements and self.reference_symbols is not None:
+            # 使用元素类型进行匹配
+            matched_points, matched_symbols, match_info = \
+                self.find_best_match_with_elements(input_points, input_symbols)
+        else:
+            # 不考虑元素类型，直接使用所有点
+            distance_matrix = cdist(self.reference_points, input_points)
+            row_ind, col_ind = linear_sum_assignment(distance_matrix)
+            matched_points = input_points[col_ind]
+            matched_symbols = input_symbols if input_symbols is not None else ['X'] * len(input_points)
+            match_info = {
+                'matched_indices': col_ind,
+                'avg_distance': distance_matrix[row_ind, col_ind].mean()
+            }
+        
+        # 使用Kabsch算法进行最优旋转对齐
+        aligned_points, rotation_matrix = self._kabsch_alignment(
+            matched_points, self.reference_points
+        )
+        
+        alignment_info = {
+            **match_info,
+            'rotation_matrix': rotation_matrix,
+            'aligned_points': aligned_points
+        }
+        
+        return aligned_points, matched_symbols, alignment_info
+    
+    def _kabsch_alignment(self, points1: np.ndarray, points2: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Kabsch算法：最小二乘对齐
+        """
+        # 计算质心
+        centroid1 = np.mean(points1, axis=0)
+        centroid2 = np.mean(points2, axis=0)
+        
+        # 中心化
+        centered1 = points1 - centroid1
+        centered2 = points2 - centroid2
+        
+        # 计算协方差矩阵
+        H = centered1.T @ centered2
+        
+        # 奇异值分解
+        U, S, Vt = np.linalg.svd(H)
+        
+        # 计算旋转矩阵
+        d = np.sign(np.linalg.det(Vt.T @ U.T))
+        rotation_matrix = Vt.T @ np.diag([1, 1, d]) @ U.T
+        
+        # 应用旋转和平移
+        aligned_points = (rotation_matrix @ (points1 - centroid1).T).T + centroid2
+        
+        return aligned_points, rotation_matrix
+    
+    def optimize_rotation_angle(self, input_points: np.ndarray,
+                               input_symbols: List[str],
+                               axis_point: np.ndarray,
+                               axis_direction: np.ndarray,
+                               use_elements: bool = True) -> Dict:
+        """
+        优化旋转角度以最大化相似性
+        
+        参数:
+        input_points: 输入点集
+        input_symbols: 输入元素符号
+        axis_point: 旋转轴上的点
+        axis_direction: 旋转轴方向
+        use_elements: 是否使用元素类型信息
+        
+        返回:
+        优化结果
+        """
+        def objective(angle_rad):
+            # 旋转点集
+            rotated_points = self.rotate_points_around_axis(
+                input_points, axis_point, axis_direction, angle_rad
+            )
+            
+            # 对齐并计算相似性
+            aligned_points, _, alignment_info = self.align_whole_structure(
+                rotated_points, input_symbols, use_elements
+            )
+            
+            # 计算考虑元素间距离的相似性
+            similarity_result = self.compute_distance_similarity(
+                self.reference_points, aligned_points,
+                self.reference_symbols, input_symbols
+            )
+            
+            # 返回负相似性（因为我们要最大化相似性）
+            return -similarity_result['weighted_similarity']
+        
+        # 使用优化算法寻找最佳角度
+        result = minimize(
+            objective,
+            x0=0.0,
+            bounds=[(-np.pi, np.pi)],
+            method='L-BFGS-B'
+        )
+        
+        best_angle = result.x[0]
+        best_similarity = -result.fun
+        
+        # 计算最佳旋转下的完整结果
+        rotated_points = self.rotate_points_around_axis(
+            input_points, axis_point, axis_direction, best_angle
+        )
+        
+        aligned_points, matched_symbols, alignment_info = self.align_whole_structure(
+            rotated_points, input_symbols, use_elements
+        )
+        
+        similarity_result = self.compute_distance_similarity(
+            self.reference_points, aligned_points,
+            self.reference_symbols, matched_symbols
+        )
+        
+        return {
+            'best_angle_rad': best_angle,
+            'best_angle_deg': np.degrees(best_angle),
+            'best_similarity': best_similarity,
+            'aligned_points': aligned_points,
+            'matched_symbols': matched_symbols,
+            'similarity_result': similarity_result,
+            'alignment_info': alignment_info,
+            'optimization_success': result.success
+        }
+
+class AdvancedASEMatcher:
+    """
+    高级ASE结构匹配器，专门处理晶体结构
+    """
+    
+    def __init__(self, reference_structure: Atoms):
+        """
+        初始化参考结构
+        
+        参数:
+        reference_structure: ASE Atoms对象
+        """
+        self.reference_structure = reference_structure
+        self.reference_positions = reference_structure.get_positions()
+        self.reference_symbols = reference_structure.get_chemical_symbols()
+        
+        # 创建点集匹配器
+        self.matcher = EnhancedPointSetMatcher(
+            self.reference_positions, self.reference_symbols
+        )
+        
+        # 提取结构特征
+        self.structure_features = self._extract_structure_features()
+    
+    def _extract_structure_features(self) -> Dict:
+        """提取结构特征"""
+        features = {
+            'elements': Counter(self.reference_symbols),
+            'center_of_mass': self.reference_structure.get_center_of_mass(),
+            'cell': self.reference_structure.get_cell() if hasattr(self.reference_structure, 'get_cell') else None,
+            'volume': self.reference_structure.get_volume() if hasattr(self.reference_structure, 'get_volume') else None,
+            'formula': self.reference_structure.get_chemical_formula()
+        }
+        
+        # 计算配位环境（简化版）
+        features['nearest_neighbor_distances'] = self._compute_nearest_neighbor_distances()
+        
+        return features
+    
+    def _compute_nearest_neighbor_distances(self) -> Dict:
+        """计算最近邻距离"""
+        from scipy.spatial import KDTree
+        
+        tree = KDTree(self.reference_positions)
+        distances, _ = tree.query(self.reference_positions, k=2)  # k=2因为包含自身
+        
+        # 排除自身距离，取最近邻距离
+        nearest_distances = distances[:, 1]
+        
+        # 按元素分组
+        element_distances = defaultdict(list)
+        for symbol, dist in zip(self.reference_symbols, nearest_distances):
+            element_distances[symbol].append(dist)
+        
+        return {k: np.mean(v) for k, v in element_distances.items()}
+    
+    def match_with_rotation(self, input_structure: Atoms,
+                          axis_point: Optional[np.ndarray] = None,
+                          axis_direction: Optional[np.ndarray] = None,
+                          angle_rad: Optional[float] = None,
+                          optimize_angle: bool = True) -> Dict:
+        """
+        匹配输入结构，可选旋转
+        
+        参数:
+        input_structure: 输入的ASE结构
+        axis_point: 旋转轴上的点（如果为None则使用质心）
+        axis_direction: 旋转轴方向（如果为None则随机方向）
+        angle_rad: 旋转角度（如果为None且optimize_angle=True则自动优化）
+        optimize_angle: 是否优化旋转角度
+        
+        返回:
+        匹配结果
+        """
+        input_positions = input_structure.get_positions()
+        input_symbols = input_structure.get_chemical_symbols()
+        
+        # 设置默认旋转参数
+        if axis_point is None:
+            axis_point = self.structure_features['center_of_mass']
+        
+        if axis_direction is None:
+            axis_direction = np.array([1, 0, 0])  # 默认绕X轴旋转
+        
+        if angle_rad is None and not optimize_angle:
+            angle_rad = 0.0
+        
+        # 检查元素类型
+        self._validate_elements(input_symbols)
+        
+        if optimize_angle:
+            # 优化旋转角度
+            result = self.matcher.optimize_rotation_angle(
+                input_positions, input_symbols, axis_point, axis_direction, use_elements=True
+            )
+        else:
+            # 使用指定角度
+            rotated_points = self.matcher.rotate_points_around_axis(
+                input_positions, axis_point, axis_direction, angle_rad
+            )
+            
+            aligned_points, matched_symbols, alignment_info = self.matcher.align_whole_structure(
+                rotated_points, input_symbols, use_elements=True
+            )
+            
+            similarity_result = self.matcher.compute_distance_similarity(
+                self.reference_positions, aligned_points,
+                self.reference_symbols, matched_symbols
+            )
+            
+            result = {
+                'best_angle_rad': angle_rad,
+                'best_angle_deg': np.degrees(angle_rad),
+                'best_similarity': similarity_result['weighted_similarity'],
+                'aligned_points': aligned_points,
+                'matched_symbols': matched_symbols,
+                'similarity_result': similarity_result,
+                'alignment_info': alignment_info,
+                'optimization_success': True
+            }
+        
+        # 添加结构信息
+        result['reference_formula'] = self.structure_features['formula']
+        result['input_formula'] = input_structure.get_chemical_formula()
+        result['axis_point'] = axis_point
+        result['axis_direction'] = axis_direction
+        
+        # 计算结构指标
+        result['structure_metrics'] = self._compute_structure_metrics(
+            result['aligned_points'], result['matched_symbols']
+        )
+        
+        return result
+    
+    def _validate_elements(self, input_symbols: List[str]):
+        """验证元素类型"""
+        ref_counter = Counter(self.reference_symbols)
+        input_counter = Counter(input_symbols)
+        
+        if ref_counter != input_counter:
+            warnings.warn(f"元素类型分布不匹配: 参考={dict(ref_counter)}, 输入={dict(input_counter)}")
+    
+    def _compute_structure_metrics(self, aligned_points: np.ndarray, 
+                                 matched_symbols: List[str]) -> Dict:
+        """计算结构指标"""
+        metrics = {}
+        
+        # 1. 键长分布
+        metrics['bond_length_distribution'] = self._analyze_bond_lengths(
+            aligned_points, matched_symbols
+        )
+        
+        # 2. 键角分布（简化版）
+        metrics['bond_angle_analysis'] = self._analyze_bond_angles(
+            aligned_points, matched_symbols
+        )
+        
+        # 3. 体积匹配度
+        if self.structure_features['volume'] is not None:
+            # 计算对齐后结构的体积
+            from scipy.spatial import ConvexHull
+            try:
+                hull = ConvexHull(aligned_points)
+                input_volume = hull.volume
+                ref_volume = self.structure_features['volume']
+                metrics['volume_ratio'] = input_volume / ref_volume
+                metrics['volume_similarity'] = np.exp(-abs(metrics['volume_ratio'] - 1))
+            except:
+                metrics['volume_ratio'] = None
+                metrics['volume_similarity'] = None
+        
+        return metrics
+    
+    def _analyze_bond_lengths(self, points: np.ndarray, symbols: List[str]) -> Dict:
+        """分析键长分布"""
+        # 使用最近邻距离作为键长
+        from scipy.spatial import KDTree
+        
+        tree = KDTree(points)
+        distances, indices = tree.query(points, k=2)  # 最近邻和次近邻
+        
+        results = {
+            'all_bond_lengths': distances[:, 1],  # 排除自身
+            'element_specific': {}
+        }
+        
+        # 按元素类型分析
+        unique_symbols = set(symbols)
+        for symbol in unique_symbols:
+            symbol_indices = [i for i, s in enumerate(symbols) if s == symbol]
+            symbol_distances = distances[symbol_indices, 1]
+            results['element_specific'][symbol] = {
+                'mean': np.mean(symbol_distances),
+                'std': np.std(symbol_distances),
+                'min': np.min(symbol_distances),
+                'max': np.max(symbol_distances)
+            }
+        
+        return results
+    
+    def _analyze_bond_angles(self, points: np.ndarray, symbols: List[str]) -> Dict:
+        """分析键角分布（简化版）"""
+        from scipy.spatial import KDTree
+        
+        tree = KDTree(points)
+        # 找到每个点的两个最近邻
+        distances, indices = tree.query(points, k=4)  # 自身 + 3个最近邻
+        
+        angles = []
+        for i in range(len(points)):
+            # 使用三个最近邻点计算角度
+            neighbors = indices[i, 1:4]  # 排除自身
+            
+            if len(neighbors) >= 2:
+                # 取前两个最近邻
+                vec1 = points[neighbors[0]] - points[i]
+                vec2 = points[neighbors[1]] - points[i]
+                
+                # 计算夹角
+                cos_angle = np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
+                cos_angle = np.clip(cos_angle, -1.0, 1.0)
+                angle = np.degrees(np.arccos(cos_angle))
+                angles.append(angle)
+        
+        return {
+            'mean_angle': np.mean(angles) if angles else None,
+            'std_angle': np.std(angles) if angles else None,
+            'angles': angles
+        }
+    
+    def compare_multiple_rotations(self, input_structure: Atoms,
+                                 n_angles: int = 36,
+                                 axis_point: Optional[np.ndarray] = None,
+                                 axis_direction: Optional[np.ndarray] = None) -> Dict:
+        """
+        比较多个旋转角度
+        
+        参数:
+        input_structure: 输入结构
+        n_angles: 角度采样数量
+        axis_point: 旋转轴上的点
+        axis_direction: 旋转轴方向
+        
+        返回:
+        比较结果
+        """
+        if axis_point is None:
+            axis_point = self.structure_features['center_of_mass']
+        
+        if axis_direction is None:
+            axis_direction = np.array([1, 0, 0])
+        
+        input_positions = input_structure.get_positions()
+        input_symbols = input_structure.get_chemical_symbols()
+        
+        angles_rad = np.linspace(0, 2*np.pi, n_angles, endpoint=False)
+        results = []
+        
+        for angle_rad in angles_rad:
+            rotated_points = self.matcher.rotate_points_around_axis(
+                input_positions, axis_point, axis_direction, angle_rad
+            )
+            
+            aligned_points, matched_symbols, _ = self.matcher.align_whole_structure(
+                rotated_points, input_symbols, use_elements=True
+            )
+            
+            similarity_result = self.matcher.compute_distance_similarity(
+                self.reference_positions, aligned_points,
+                self.reference_symbols, matched_symbols
+            )
+            
+            results.append({
+                'angle_rad': angle_rad,
+                'angle_deg': np.degrees(angle_rad),
+                'similarity': similarity_result['weighted_similarity'],
+                'overall_similarity': similarity_result['overall_similarity'],
+                'rmse': similarity_result['overall_rmse']
+            })
+        
+        # 找到最佳角度
+        best_result = max(results, key=lambda x: x['similarity'])
+        
+        return {
+            'all_results': results,
+            'best_result': best_result,
+            'best_angle_deg': best_result['angle_deg'],
+            'best_similarity': best_result['similarity']
+        }
+
 def svd_rotation_matrix(a, b):
     """
     使用SVD分解计算旋转矩阵
@@ -1108,18 +1861,43 @@ class STARTfromBROKENtoBONDED():
             rotated_points,R = rotate_point_set(a3_only_mol.positions,v_core_a3,v_core_a1a2,a3_center)
             a3_only_mol.positions=rotated_points
             a3_only_mol.positions += v_trans
-            matches, total_dist = element_constrained_hungarian(a3_only_mol, a1a2sys_only_mol)
-            '''
-            match_info = {
-                'index_A': idx_A,
-                'index_B': idx_B,
-                'element': elem,
-                'distance': dist,
-                'position_A': positions_A[idx_A],
-                'position_B': positions_B[idx_B]
-            }
-            按A结构的索引排序匹配结果
-            '''
+            # 创建匹配器
+            ref_structure, input_structure = a1a2sys_only_mol , a3_only_mol
+            axis_point = a1a2_center
+            axis_direction = v_core_a1a2/ np.linalg.norm(v_core_a1a2)
+            matcher = AdvancedASEMatcher(ref_structure)
+            print("\n参考结构:")
+            print(f"化学式: {ref_structure.get_chemical_formula()}")
+            print(f"原子数: {len(ref_structure)}")
+            print(f"元素分布: {dict(Counter(ref_structure.get_chemical_symbols()))}")
+            print("\n输入结构:")
+            print(f"化学式: {input_structure.get_chemical_formula()}")
+            print(f"原子数: {len(input_structure)}")
+            print(f"元素分布: {dict(Counter(input_structure.get_chemical_symbols()))}")
+            print(f"\n旋转参数:")
+            print(f"旋转轴点: {axis_point}")
+            print(f"旋转轴方向: {axis_direction}")
+            # 方法2：比较多个角度
+            print("\n" + "="*60)
+            print("方法2：比较多个旋转角度")
+            print("="*60)
+            
+            multi_result = matcher.compare_multiple_rotations(
+                input_structure,
+                n_angles=36,
+                axis_point=axis_point,
+                axis_direction=axis_direction
+            )
+            
+            print(f"最佳角度: {multi_result['best_angle_deg']:.2f} 度")
+            print(f"最佳相似性: {multi_result['best_similarity']:.6f}")
+            
+            # 打印前3个最佳结果
+            print("\n前3个最佳旋转角度:")
+            sorted_results = sorted(multi_result['all_results'], key=lambda x: x['similarity'], reverse=True)
+            for i, res in enumerate(sorted_results[:36]):
+                print(f"  {i+1}. {res['angle_deg']:6.1f}° - 相似性: {res['similarity']:.6f}")
+            
             new_order = []
             for match_info in matches:
                 new_order.append(match_info['index_B'])
