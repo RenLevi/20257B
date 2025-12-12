@@ -21,7 +21,8 @@ class CnOneReactionOneProductReactionLib:
             C1MolLib.CHO,
             C1MolLib.COH,
             C1MolLib.CH2O,
-            C1MolLib.CHOH
+            C1MolLib.CHOH,
+            C1MolLib.CH2OH
         ] for j in list(range(1,2*n))
     ]
     reaction_add_carbon_species_on_jth_carbon = [
@@ -38,7 +39,8 @@ class CnOneReactionOneProductReactionLib:
             C1MolLib.CHO,
             C1MolLib.COH,
             C1MolLib.CH2O,
-            C1MolLib.CHOH
+            C1MolLib.CHOH,
+            C1MolLib.CH2OH
         ] for j in list(range(1,n))
     ]
     nlist =list(range(1,n+1))#[1,2,3]

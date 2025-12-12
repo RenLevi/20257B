@@ -20,6 +20,8 @@ import ase
 from typing import Tuple, List, Dict, Optional, Any
 import itertools
 from collections import defaultdict, Counter
+import warnings
+warnings.filterwarnings('ignore')
 class EnhancedPointSetMatcher:
     """
     增强的三维点集匹配器，考虑整体结构和元素间相对距离
@@ -603,12 +605,6 @@ class AdvancedASEMatcher:
         result['input_formula'] = input_structure.get_chemical_formula()
         result['axis_point'] = axis_point
         result['axis_direction'] = axis_direction
-        
-        # 计算结构指标
-        result['structure_metrics'] = self._compute_structure_metrics(
-            result['aligned_points'], result['matched_symbols']
-        )
-        
         return result
     
     def _validate_elements(self, input_symbols: List[str]):
@@ -618,95 +614,6 @@ class AdvancedASEMatcher:
         
         if ref_counter != input_counter:
             warnings.warn(f"元素类型分布不匹配: 参考={dict(ref_counter)}, 输入={dict(input_counter)}")
-    
-    def _compute_structure_metrics(self, aligned_points: np.ndarray, 
-                                 matched_symbols: List[str]) -> Dict:
-        """计算结构指标"""
-        metrics = {}
-        
-        # 1. 键长分布
-        metrics['bond_length_distribution'] = self._analyze_bond_lengths(
-            aligned_points, matched_symbols
-        )
-        
-        # 2. 键角分布（简化版）
-        metrics['bond_angle_analysis'] = self._analyze_bond_angles(
-            aligned_points, matched_symbols
-        )
-        
-        # 3. 体积匹配度
-        if self.structure_features['volume'] is not None:
-            # 计算对齐后结构的体积
-            from scipy.spatial import ConvexHull
-            try:
-                hull = ConvexHull(aligned_points)
-                input_volume = hull.volume
-                ref_volume = self.structure_features['volume']
-                metrics['volume_ratio'] = input_volume / ref_volume
-                metrics['volume_similarity'] = np.exp(-abs(metrics['volume_ratio'] - 1))
-            except:
-                metrics['volume_ratio'] = None
-                metrics['volume_similarity'] = None
-        
-        return metrics
-    
-    def _analyze_bond_lengths(self, points: np.ndarray, symbols: List[str]) -> Dict:
-        """分析键长分布"""
-        # 使用最近邻距离作为键长
-        from scipy.spatial import KDTree
-        
-        tree = KDTree(points)
-        distances, indices = tree.query(points, k=2)  # 最近邻和次近邻
-        
-        results = {
-            'all_bond_lengths': distances[:, 1],  # 排除自身
-            'element_specific': {}
-        }
-        
-        # 按元素类型分析
-        unique_symbols = set(symbols)
-        for symbol in unique_symbols:
-            symbol_indices = [i for i, s in enumerate(symbols) if s == symbol]
-            symbol_distances = distances[symbol_indices, 1]
-            results['element_specific'][symbol] = {
-                'mean': np.mean(symbol_distances),
-                'std': np.std(symbol_distances),
-                'min': np.min(symbol_distances),
-                'max': np.max(symbol_distances)
-            }
-        
-        return results
-    
-    def _analyze_bond_angles(self, points: np.ndarray, symbols: List[str]) -> Dict:
-        """分析键角分布（简化版）"""
-        from scipy.spatial import KDTree
-        
-        tree = KDTree(points)
-        # 找到每个点的两个最近邻
-        distances, indices = tree.query(points, k=4)  # 自身 + 3个最近邻
-        
-        angles = []
-        for i in range(len(points)):
-            # 使用三个最近邻点计算角度
-            neighbors = indices[i, 1:4]  # 排除自身
-            
-            if len(neighbors) >= 2:
-                # 取前两个最近邻
-                vec1 = points[neighbors[0]] - points[i]
-                vec2 = points[neighbors[1]] - points[i]
-                
-                # 计算夹角
-                cos_angle = np.dot(vec1, vec2) / (np.linalg.norm(vec1) * np.linalg.norm(vec2))
-                cos_angle = np.clip(cos_angle, -1.0, 1.0)
-                angle = np.degrees(np.arccos(cos_angle))
-                angles.append(angle)
-        
-        return {
-            'mean_angle': np.mean(angles) if angles else None,
-            'std_angle': np.std(angles) if angles else None,
-            'angles': angles
-        }
-    
     def compare_multiple_rotations(self, input_structure: Atoms,
                                  n_angles: int = 36,
                                  axis_point: Optional[np.ndarray] = None,
@@ -795,57 +702,6 @@ def svd_rotation_matrix(a, b):
         Vt[2, :] *= -1
         R = np.dot(Vt.T, U.T)
     return R
-'''def rotate_vector_to_target(A, B):
-    """
-    计算将向量A旋转到与向量B同向的旋转矩阵
-    
-    参数:
-        A: 原始向量 (numpy array)
-        B: 目标向量 (numpy array)
-    
-    返回:
-        rotation_matrix: 旋转矩阵
-    """
-    # 归一化向量
-    A_norm = A / np.linalg.norm(A)
-    B_norm = B / np.linalg.norm(B)
-    
-    # 计算旋转轴（垂直于A和B的向量）
-    rotation_axis = np.cross(A_norm, B_norm)
-    
-    # 如果A和B已经同向或反向，旋转轴为零向量，直接返回单位矩阵
-    if np.linalg.norm(rotation_axis) < 1e-10:
-        # 检查是同向还是反向
-        if np.dot(A_norm, B_norm) > 0:
-            return np.eye(3)  # 同向，不需要旋转
-        else:
-            # 反向，需要旋转180度，可以选择任意垂直轴
-            # 找一个与A垂直的向量
-            if abs(A_norm[0]) > 1e-10 or abs(A_norm[1]) > 1e-10:
-                temp_vec = np.array([-A_norm[1], A_norm[0], 0])
-            else:
-                temp_vec = np.array([0, -A_norm[2], A_norm[1]])
-            rotation_axis = temp_vec / np.linalg.norm(temp_vec)
-    
-    rotation_axis = rotation_axis / np.linalg.norm(rotation_axis)
-    
-    # 计算旋转角度
-    cos_angle = np.dot(A_norm, B_norm)
-    cos_angle = np.clip(cos_angle, -1.0, 1.0)  # 防止浮点误差
-    angle = np.arccos(cos_angle)
-    
-    # 使用罗德里格斯旋转公式计算旋转矩阵
-    K = np.array([
-        [0, -rotation_axis[2], rotation_axis[1]],
-        [rotation_axis[2], 0, -rotation_axis[0]],
-        [-rotation_axis[1], rotation_axis[0], 0]
-    ])
-    
-    rotation_matrix = (np.eye(3) + 
-                      np.sin(angle) * K + 
-                      (1 - np.cos(angle)) * np.dot(K, K))
-    
-    return rotation_matrix'''
 def rotate_point_set(points, A, B, center=None):
     """
     旋转点集使得向量A与向量B同向
@@ -1384,7 +1240,7 @@ def Euclidean_distance(R1:Atoms, R2:Atoms):
 def cal_dist_between_nobondedatoms(o1p,a2):
     d = 0
     for atom2 in a2:
-        d+=np.linalg.norm(atom2-o1p)
+        d+=np.linalg.norm(atom2.position-o1p)
     return d
 def find_min_sum_distance_point_vectorized(points,point_a,point_b,w_a=0.5,w_b=0.5):
     """
@@ -1436,21 +1292,27 @@ def find_max_sum_distance_point_vectorized(points, point_a, point_b,w_a=0.5,w_b=
 def select_site_with_max_dist(result_idxlist,base_mol,points,centeridx):
     sitepositions0=[]
     idxlist = []
-    total_dists = np.zeros((1,len(result_idxlist)))
+    #total_dists = np.zeros((1,len(result_idxlist)))
     for idx in result_idxlist:
         sitepositions0.append(points[idx])
         idxlist.append(idx)
     sitepositions=np.array(sitepositions0)
     for a in base_mol:
-        if a.index == centeridx :
+        if a.index == centeridx:
             point_a = a.position
-            dist_a = np.linalg.norm(sitepositions - point_a,axis=1)
+            weight=1
+            dist_a = np.linalg.norm(sitepositions - weight*point_a,axis=1)
             total_dists = dist_a-dist_a
     for a in base_mol:
-        if a.index != centeridx and a.symbol != 'Ru':
-            point_a = a.position
-            dist_a = np.linalg.norm(sitepositions - point_a,axis=1)
-            total_dists += dist_a
+        if a.symbol == 'H':
+            weight = 0.2
+        elif a.index == centeridx or a.symbol == 'Ru':
+            weight = 0.0
+        else:
+            weight = 1.0
+        point_a = a.position
+        dist_a = np.linalg.norm(sitepositions - weight*point_a,axis=1)
+        total_dists += dist_a
         
     if np.all(total_dists == 0):
         max_index = 0
@@ -1459,8 +1321,6 @@ def select_site_with_max_dist(result_idxlist,base_mol,points,centeridx):
         max_index = np.argmax(total_dists)
         max_point = sitepositions0[max_index]
         max_distance = total_dists[max_index]
-    '''for i in range(len(sitepositions0)):
-        print('idx:',idxlist[i],' total_dists:',total_dists[i])'''
     return idxlist[max_index],max_point
 def get_atom_info(atoms, index):
     """获取单个原子的位置和元素符号"""
@@ -1541,8 +1401,11 @@ def checkbond_a3(reaction:list,a1,a3):
                 if subHH(Chem.MolToSmiles(mol)) == Chem.MolToSmiles(check_mol):
                     for i, fragment in enumerate(fragments_mols):
                         if subHH(Chem.MolToSmiles(fragment)) == Chem.MolToSmiles(cs12[1]):
+                            #print('main',subHH(Chem.MolToSmiles(fragment)),Chem.MolToSmiles(cs12[1]))
                             main = [i,fragment,None]
-                        else:sub = [i,fragment,None]
+                        else:
+                            #print('sub',subHH(Chem.MolToSmiles(fragment)),Chem.MolToSmiles(cs12[0]))
+                            sub = [i,fragment,None]
                     if begin_atom.GetIdx() in frags_mol_atom_mapping[main[0]]:
                         main[-1]=begin_atom.GetIdx()
                         sub[-1]=end_atom.GetIdx()
@@ -1755,8 +1618,6 @@ class STARTfromBROKENtoBONDED():
             bid_mol,eid_mol,_,_ = checkbond_a3(rl,a1,a3)
             print(o1,o2,bid_mol,eid_mol)
             assert o1 != False and o2 != False and bid_mol != None and eid_mol != None
-            '''if o1 == False or o2 == False:
-                return False,False'''
             self.bondatoms = [bid_mol,eid_mol]
             base_mol = a1.atoms
             total_atoms = len(base_mol)
@@ -1820,13 +1681,13 @@ class STARTfromBROKENtoBONDED():
                 result_idxlist = DQ4site1.find_points_at_distance(query_point=bap_a1,target_distance=3,tolerance=0.5)
                 _,max_point1 = select_site_with_max_dist(result_idxlist,base_mol,sitepldict[site1[-2]],o1)
                 DQ4site2 = DistanceQuery(sitepldict[site2[-2]])
-                site2_idxlist=DQ4site2.find_points_at_distance(max_point1,distsite12,tolerance=0.5)
+                site2_idxlist=DQ4site2.find_points_at_distance(max_point1,distsite12,tolerance=0.5,opt=0)
                 v_trans = max_point1-site1[0]
                 assert len(site2_idxlist) != 0
                 nobondedatomdist = []
                 for id  in site2_idxlist:
                     point2 = sitepldict[site2[-2]][id]
-                    v_21 = point2-min_point1
+                    v_21 = point2-max_point1
                     mola2 = copy.deepcopy(a2.only_mol)
                     rotated_points,R = rotate_point_set(mola2.positions,v21,v_21,site1[0])
                     mola2.positions =rotated_points
@@ -1837,8 +1698,8 @@ class STARTfromBROKENtoBONDED():
                     'SUM_dist':cal_dist_between_nobondedatoms(base_mol[o1].position,mola2)
                     }
                     nobondedatomdist.append(nbad_info)
-                euolist.sort(key=lambda x: x['SUM_dist'])
-                max_point2 = euolist[-1]['point2']
+                nobondedatomdist.sort(key=lambda x: x['SUM_dist'])
+                max_point2 = nobondedatomdist[-1]['point2']
                 v_21 = max_point2-max_point1
                 mola2 = copy.deepcopy(a2.only_mol)
                 rotated_points,R = rotate_point_set(mola2.positions,v21,v_21,site1[0])
@@ -1862,7 +1723,7 @@ class STARTfromBROKENtoBONDED():
             a3_only_mol.positions=rotated_points
             a3_only_mol.positions += v_trans
             # 创建匹配器
-            ref_structure, input_structure = a1a2sys_only_mol , a3_only_mol
+            ref_structure, input_structure = a3_only_mol,a1a2sys_only_mol
             axis_point = a1a2_center
             axis_direction = v_core_a1a2/ np.linalg.norm(v_core_a1a2)
             matcher = AdvancedASEMatcher(ref_structure)
@@ -1876,33 +1737,24 @@ class STARTfromBROKENtoBONDED():
             print(f"元素分布: {dict(Counter(input_structure.get_chemical_symbols()))}")
             print(f"\n旋转参数:")
             print(f"旋转轴点: {axis_point}")
-            print(f"旋转轴方向: {axis_direction}")
-            # 方法2：比较多个角度
-            print("\n" + "="*60)
-            print("方法2：比较多个旋转角度")
-            print("="*60)
-            
+            print(f"旋转轴方向: {axis_direction}")            
             multi_result = matcher.compare_multiple_rotations(
                 input_structure,
                 n_angles=36,
                 axis_point=axis_point,
                 axis_direction=axis_direction
             )
-            
             print(f"最佳角度: {multi_result['best_angle_deg']:.2f} 度")
             print(f"最佳相似性: {multi_result['best_similarity']:.6f}")
-            
-            # 打印前3个最佳结果
-            print("\n前3个最佳旋转角度:")
-            sorted_results = sorted(multi_result['all_results'], key=lambda x: x['similarity'], reverse=True)
-            for i, res in enumerate(sorted_results[:36]):
-                print(f"  {i+1}. {res['angle_deg']:6.1f}° - 相似性: {res['similarity']:.6f}")
-            
-            new_order = []
-            for match_info in matches:
-                new_order.append(match_info['index_B'])
+            result = matcher.match_with_rotation(
+                    input_structure,
+                    axis_point=axis_point,
+                    axis_direction=axis_direction,
+                    angle_rad=np.radians(multi_result['best_angle_deg']),
+                    optimize_angle=False)
+            new_order = result['alignment_info']['matched_indices']
+            print("新原子顺序:", new_order)
             a1a2sys_only_mol = a1a2sys_only_mol[new_order]
-            
             self.group2 = self.slab+a1a2sys_only_mol
             a3_ads_data = a3.ads_data
             if len(a3_ads_data) == 1:
@@ -1981,6 +1833,8 @@ class STARTfromBROKENtoBONDED():
                 v_trans = min_point1-site1[0]
                 DQ4site2 = DistanceQuery(sitepldict[site2[-2]])
                 site2_idxlist=DQ4site2.find_points_at_distance(min_point1,distsite12,tolerance=0.5,opt=0)
+                print('site2_idxlist:',site2_idxlist)
+                print(min_point1,distsite12)
                 assert len(site2_idxlist) != 0
                 euolist = []
                 for id  in site2_idxlist:
