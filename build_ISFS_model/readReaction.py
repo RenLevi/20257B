@@ -1300,19 +1300,18 @@ def select_site_with_max_dist(result_idxlist,base_mol,points,centeridx):
     for a in base_mol:
         if a.index == centeridx:
             point_a = a.position
-            weight=1
-            dist_a = np.linalg.norm(sitepositions - weight*point_a,axis=1)
+            dist_a = np.linalg.norm(sitepositions - point_a,axis=1)
             total_dists = dist_a-dist_a
     for a in base_mol:
         if a.symbol == 'H':
-            weight = 0.2
+            weight = 0.1
         elif a.index == centeridx or a.symbol == 'Ru':
             weight = 0.0
         else:
             weight = 1.0
         point_a = a.position
-        dist_a = np.linalg.norm(sitepositions - weight*point_a,axis=1)
-        total_dists += dist_a
+        dist_a = np.linalg.norm(sitepositions - point_a,axis=1)
+        total_dists += weight*dist_a
         
     if np.all(total_dists == 0):
         max_index = 0
