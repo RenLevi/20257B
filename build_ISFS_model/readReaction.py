@@ -1337,7 +1337,7 @@ def str2list(reaction:str):
 def add_brackets_around_letters(cnmol:str):# 使用正则表达式替换不在[]中的字母字符，前后添加[]:example:[H]CO==>[H][C][O]
     result = re.sub(r'(?<!\[)([a-zA-Z])(?!\])', r'[\g<1>]', cnmol)
     return result
-def checkbond_a3(reaction:list,a1,a3):
+def checkbond_a3(reaction:list,a1,a3):#！重点关照
     mol1 = a1.bms.mol
     mol2 =a3.bms.mol
     bms1 = a1.bms
@@ -1398,17 +1398,21 @@ def checkbond_a3(reaction:list,a1,a3):
                                                 fragsMolAtomMapping=frags_mol_atom_mapping  # 此参数用于接收原子映射信息[citation:1]
                                             )
                 if subHH(Chem.MolToSmiles(mol)) == Chem.MolToSmiles(check_mol):
-                    for i, fragment in enumerate(fragments_mols):
-                        if subHH(Chem.MolToSmiles(fragment)) == Chem.MolToSmiles(cs12[1]):
-                            #print('main',subHH(Chem.MolToSmiles(fragment)),Chem.MolToSmiles(cs12[1]))
-                            main = [i,fragment,None]
-                        else:
-                            #print('sub',subHH(Chem.MolToSmiles(fragment)),Chem.MolToSmiles(cs12[0]))
-                            sub = [i,fragment,None]
+                    if Chem.MolToSmiles(fragments_mols[0]) != Chem.MolToSmiles(fragments_mols[1]):
+                        for i, fragment in enumerate(fragments_mols):
+                            if subHH(Chem.MolToSmiles(fragment)) == Chem.MolToSmiles(cs12[1]):
+                                #print('main',subHH(Chem.MolToSmiles(fragment)),Chem.MolToSmiles(cs12[1]))
+                                main = [i,fragment,None]
+                            else:
+                                #print('sub',subHH(Chem.MolToSmiles(fragment)),Chem.MolToSmiles(cs12[0]))
+                                sub = [i,fragment,None]
+                    else:
+                        main = [0,fragments_mols[0],None]
+                        sub = [1,fragments_mols[1],None]
                     if begin_atom.GetIdx() in frags_mol_atom_mapping[main[0]]:
                         main[-1]=begin_atom.GetIdx()
                         sub[-1]=end_atom.GetIdx()
-                    elif end_atom.GetIdx()in frags_mol_atom_mapping[main[0]]:
+                    elif end_atom.GetIdx() in frags_mol_atom_mapping[main[0]]:
                         main[-1]=end_atom.GetIdx()
                         sub[-1]=begin_atom.GetIdx()
                     Bid=begin_atom.GetIdx()+bms.metal
@@ -1492,7 +1496,7 @@ def checkbond_a1a2(reaction:list,a1,a2,a3):
                     return A1.id,adsA2.id,'Nad2ad',(ida1,ida2)
                 else:pass
     return False,False,False,False
-def rotate_mol_find_best_distance(a2,a1,step_degree=60,opt = 'min',center=None):
+def rotate_mol_find_best_distance(a2,a1,step_degree=60,opt = 'min',center=None,rotate_axis=np.array([0, 0, 1])):#wrong
     """
     旋转分子以找到与另一个分子之间的最小距离配置
     
@@ -1511,15 +1515,13 @@ def rotate_mol_find_best_distance(a2,a1,step_degree=60,opt = 'min',center=None):
         check_distance = 0
     best_rotate = None
     best_model = None
-    # 将角度转换为弧度
-    step_radian = np.radians(step_degree)
     # 遍历所有旋转角度组合
-    for alpha in np.arange(0, 2 * np.pi, step_radian):
+    for alpha in np.arange(0,360, step_degree):
                 # 创建旋转矩阵
-                rotation_axis = [0, 0, 1]  # Z轴向量
+                rotation_axis = rotate_axis # Z轴向量
                 # 复制并旋转第一个分子
                 rotated_a2 = a2.copy()
-                rotated_a2.rotate(rotation_axis, alpha, rotate_cell=False)
+                rotated_a2.rotate(rotation_axis,alpha,center=center,rotate_cell=False)
                 # 计算两分子之间的距离
                 dist = np.linalg.norm(a1.positions-rotated_a2.get_center_of_mass(),axis=1)
                 total_sum = np.sum(dist)
@@ -1716,7 +1718,44 @@ class STARTfromBROKENtoBONDED():
             a1a2_center = calculate_midpoint(mainPOS,subPOS)
             v_core_a1a2=mainPOS-subPOS
             v_core_a3 = beginPOS-endPOS
-            #移动a3中的分子
+
+            self.group2 = a1a2sys#!保存a1a2sys用于后续输出
+
+            def No123Match(input,ref,axis_point=np.array([0,0,0]),axis_direction=np.array([0,0,1]),n_angles=36):
+                if len(input) != len(ref):
+                    return ValueError("输入结构和参考结构的原子数不匹配。")
+                ref_structure, input_structure = copy.deepcopy(ref), copy.deepcopy(input)#ref_structure, input_structure = a3_only_mol,a1a2sys_only_mol
+                matcher = AdvancedASEMatcher(ref_structure)
+                print("\n参考结构:")
+                print(f"化学式: {ref_structure.get_chemical_formula()}")
+                print(f"原子数: {len(ref_structure)}")
+                print(f"元素分布: {dict(Counter(ref_structure.get_chemical_symbols()))}")
+                print("\n输入结构:")
+                print(f"化学式: {input_structure.get_chemical_formula()}")
+                print(f"原子数: {len(input_structure)}")
+                print(f"元素分布: {dict(Counter(input_structure.get_chemical_symbols()))}")
+                print(f"\n旋转参数:")
+                print(f"旋转轴点: {axis_point}")
+                print(f"旋转轴方向: {axis_direction}")
+                multi_result = matcher.compare_multiple_rotations(
+                input_structure,
+                n_angles=n_angles,
+                axis_point=axis_point,
+                axis_direction=axis_direction)
+                print(f"最佳角度: {multi_result['best_angle_deg']:.2f} 度")
+                print(f"最佳相似性: {multi_result['best_similarity']:.6f}")
+                result = matcher.match_with_rotation(
+                    input_structure,
+                    axis_point=axis_point,
+                    axis_direction=axis_direction,
+                    angle_rad=np.radians(multi_result['best_angle_deg']),
+                    optimize_angle=False)
+                new_order = result['alignment_info']['matched_indices']
+                new_positions = result['aligned_points']
+                input_structure = input_structure[new_order]
+                input_structure.positions = new_positions
+                return new_order,new_positions,input_structure     
+            '''#移动a3中的分子
             v_trans = a1a2_center-a3_center
             rotated_points,R = rotate_point_set(a3_only_mol.positions,v_core_a3,v_core_a1a2,a3_center)
             a3_only_mol.positions=rotated_points
@@ -1754,25 +1793,30 @@ class STARTfromBROKENtoBONDED():
             new_order = result['alignment_info']['matched_indices']
             print("新原子顺序:", new_order)
             a1a2sys_only_mol = a1a2sys_only_mol[new_order]
-            self.group2 = self.slab+a1a2sys_only_mol
+            self.group2 = self.slab+a1a2sys_only_mol'''
             a3_ads_data = a3.ads_data
             if len(a3_ads_data) == 1:
                 print('a3_ads=1')
                 [nearest, distance,adsAid,atom_indices,site_type, vector] = a3_ads_data[0]
                 if site_type != 'bridge':
                     if site_type == 'top':
+                        print('top site for a3')
                         sitepl = topsitepl
                     else:
+                        print('3th_multifold site for a3')
                         sitepl = hccsitepl
                     min_point, _, _ = find_min_sum_distance_point_vectorized(sitepl,mainPOS,subPOS,w_a=0.8,w_b=0.2)
+                    print('min_point for a3:',min_point)
+                    print('nearest for a3:',nearest)
                     v_trans = min_point - nearest
                     a3sys = copy.deepcopy(a3.atoms)
                     indices_to_mol = [atom.index for atom in a3sys if atom.symbol != 'Ru']
                     a3_only_mol = copy.deepcopy(a3.only_mol)
                     a3_only_mol.positions += v_trans
-                    _,best,_ = rotate_mol_find_best_distance(a3_only_mol,a1a2sys_only_mol,step_degree=60,opt='min',center=a3_only_mol.positions[adsAid - NUMmetal])  
+                    _,_,best = No123Match(a3_only_mol,a1a2sys_only_mol,a3_only_mol.positions[adsAid - NUMmetal]) #rotate_mol_find_best_distance(a3_only_mol,a1a2sys_only_mol,step_degree=10,opt='min',center=a3_only_mol.positions[adsAid - NUMmetal])  
                     a3sys = self.slab+best   
                 else:
+                    print('bridge site for a3')
                     sitepl = bridegsitepl
                     a3spv = self.special_vectors[atom_indices]
                     a3sp = self.site_positions[atom_indices]
@@ -1787,7 +1831,9 @@ class STARTfromBROKENtoBONDED():
                     for id in indices_to_mol:
                         a3sys[id].position = rotated_pointsR1[id-NUMmetal]
                         a3sys[id].position += v_trans
-                    eou1 =Euclidean_distance(a3sys,self.group2)
+                    _,_,best = No123Match(a3_only_mol,a1a2sys_only_mol,a3_only_mol.positions[adsAid - NUMmetal],n_angles=2)
+                    a3sys = self.slab+best
+                    '''eou1 =Euclidean_distance(a3_only_mol,a1a2sys_only_mol)
                     a3sys = copy.deepcopy(a3.atoms)
                     a3_only_mol = copy.deepcopy(a3.only_mol)
                     rotated_pointsR2,R2 = rotate_point_set(a3_only_mol.positions,a3spv,-spv,a3sp)
@@ -1795,7 +1841,7 @@ class STARTfromBROKENtoBONDED():
                     for id in indices_to_mol:
                         a3sys[id].position = rotated_pointsR2[id-NUMmetal]
                         a3sys[id].position += v_trans
-                    eou2 =Euclidean_distance(a3sys,self.group2)
+                    eou2 =Euclidean_distance(a3_only_mol,a1a2sys_only_mol)
                     if eou1 <= eou2:
                         a3sys = copy.deepcopy(a3.atoms)
                         indices_to_mol = [atom.index for atom in a3sys if atom.symbol != 'Ru']
@@ -1808,7 +1854,7 @@ class STARTfromBROKENtoBONDED():
                         indices_to_mol = [atom.index for atom in a3sys if atom.symbol != 'Ru']
                         for id in indices_to_mol:
                             a3sys[id].position = rotated_pointsR2[id-NUMmetal]
-                            a3sys[id].position += v_trans
+                            a3sys[id].position += v_trans'''
                             
             elif len(a3_ads_data) < 1:
                 print('a3_ads<1')
@@ -1817,10 +1863,10 @@ class STARTfromBROKENtoBONDED():
                 v_trans = a1a2_center-a3_center
                 a3_only_mol = copy.deepcopy(a3.only_mol)
                 rotated_points,R = rotate_point_set(a3_only_mol.positions,v_core_a3,v_core_a1a2,a3_center)
-                for id in indices_to_mol:
-                    a3sys[id].position = rotated_points[id-NUMmetal]
-                    a3sys[id].position += v_trans#np.array([v_trans[0],v_trans[1],0])
-                    
+                a3_only_mol.positions=rotated_points
+                a3_only_mol.positions += v_trans
+                _,_,best = No123Match(a3_only_mol,a1a2sys_only_mol,a3_only_mol.positions[bid_mol],axis_direction=v_core_a1a2)
+                a3sys = self.slab+best  
             elif len(a3_ads_data) > 1:
                 print('a3_ads>1')
                 site1 = a3_ads_data[0]
@@ -1846,13 +1892,13 @@ class STARTfromBROKENtoBONDED():
                     for aid in indices_to_mol:
                         a3sys[aid].position = rotated_points[aid-NUMmetal]
                         a3sys[aid].position += v_trans
-                        
+                    _,_,match = No123Match(a3_only_mol,a1a2sys_only_mol,n_angles=1)
                     euo_info = {
                     'id':id,
                     'site type':site2[-2],
                     'point2':point2,
                     'dist12':np.linalg.norm(point2 - min_point1),
-                    'Euclidean_distance':Euclidean_distance(a3sys,self.group2)
+                    'Euclidean_distance':Euclidean_distance(match,a1a2sys_only_mol)#存在偷懒
                     }
                     print(euo_info)
                     euolist.append(euo_info)
