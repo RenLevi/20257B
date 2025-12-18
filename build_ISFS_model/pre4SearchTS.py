@@ -415,41 +415,32 @@ class molfile():
                 elif bm2s.smiles != name:
                     wb.append(i)   
         self.first_check =  [cp,wf,wb,wna,waH]
-    def site_finder(self,slab):
-            self.slab = slab
-            finder = SurfaceSiteFinder(slab)
-            # 创建网格
-            grid_points = finder.create_grid(grid_spacing=0.1, height_above_surface=3.0)
-            # 包裹网格到表面
-            wrapped_points = finder.wrap_grid_to_surface(contact_distance=2, step_size=0.1,height_above_surface=3.0)
-            # 查找位点
-            sites, positions,special_vector = finder.find_sites(contact_distance=2.5)
-            # 分类位点
-            site_types = finder.classify_sites(multi_site_threshold=2)
-            self.site = finder
-            self.site_types = site_types
-            self.site_positions = positions
-            self.special_vectors = special_vector
-            return self.site
-    def check_site(self):
-        
+    def check_site(self,site):
+        self.site = site
+        dict_all = {}
+        def E_min(idl:list):
+            E = []
+            for  i in idl:
+                last_atoms = read(f'{species}{name}/{i}/nequipOpt.traj',index=-1)
+                final_energy = last_atoms.get_potential_energy()
+                E.append(final_energy)
+            min_E = min(E)
+            id = E.index(min_E)
+            return idl[id]
         [cp,wf,wb,wna,waH] = self.first_check
         species = self.species
         name = self.name
         if cp == []:
             if len(wna+waH) > len(wb):#？存疑
-                E = []
-                for  i in wna:
-                    last_atoms = read(f'{species}{name}/{i}/nequipOpt.traj',index=-1)
-                    final_energy = last_atoms.get_potential_energy()
-                    E.append(final_energy)
-                min_E = min(E)
-                id = E.index(min_E)
-                self.model_p = f'{species}{name}/{wna[id]}/nequipOpt.traj'
+                id = E_min(wna)
+                self.model_p = f'{species}{name}/{id}/nequipOpt.traj'
+                dict_all[name]=('not_Ads_final_Species',id)
             else:
                 self.model_p = None
+                dict_all[name]=('wrong_Species',-1)
         else:
-            dict_cp ={}
+            TMPD = {}
+            id = E_min(cp)
             for i in cp:
                 last_atoms = read(f'{species}{name}/{i}/nequipOpt.traj',index=-1)
                 last_atomsNN = rR.NN_system()
@@ -459,11 +450,14 @@ class molfile():
                 for ads in ads_data:#ads:[nearest, distance,adsA.id,atom_indices,site_type, vector]
                     site_list.append(ads[-2])
                 site_count = Counter(site_list)
-                if site_count not in dict_cp:
-                    dict_cp[site_count] = [i]
+                self.model_p = f'{species}{name}/{id}/nequipOpt.traj'
+                code = int(f'1{site_count["top"]}2{site_count["bridge"]}3{site_count.get("3th_multifold",0)}')
+                if code in TMPD:
+                    TMPD[code].append(i)
                 else:
-                    dict_cp[site_count].append(i)
-            print(dict_cp)
+                    TMPD[code]=[i]
+            dict_all[name]=(TMPD,id)
+        print(dict_all)
 
 
                 
@@ -479,6 +473,22 @@ class PREforSearchTS():
         self.neb = path_test+'RDA_S/'
         self.file = {}
         self.slab = read(f'{path_test}opt/slab/Ru_hcp0001.vasp')
+    def site_finder(self):
+            slab = self.slab
+            finder = SurfaceSiteFinder(slab)
+            # 创建网格
+            grid_points = finder.create_grid(grid_spacing=0.1, height_above_surface=3.0)
+            # 包裹网格到表面
+            wrapped_points = finder.wrap_grid_to_surface(contact_distance=2, step_size=0.1,height_above_surface=3.0)
+            # 查找位点
+            sites, positions,special_vector = finder.find_sites(contact_distance=2.5)
+            # 分类位点
+            site_types = finder.classify_sites(multi_site_threshold=2)
+            self.site = finder
+            self.site_types = site_types
+            self.site_positions = positions
+            self.special_vectors = special_vector
+            return self.site
     def readDataPath(self):
         print('Start reading data from opt')
         def read_json(jsonfile):
@@ -488,14 +498,13 @@ class PREforSearchTS():
         self.foldername_json =f'{self.opt}system/folder_name.json'
         folder_dict=read_json(self.foldername_json)
         count_file = 0
+        
         for file in folder_dict:
             mf = molfile(file,self.mainfolder,self.slab)
-            mf.site_finder(self.slab)
-            mf.check_site()
+            mf.check_site(self.site)
             self.file[file] = mf
             count_file +=1
             print(f'{file}:{count_file}')
-        assert 1!=1
         if count_file != len(folder_dict):
             ValueError  
         else:pass
@@ -527,13 +536,15 @@ class PREforSearchTS():
                         return 'O'
             add_mol = self.file[warp(rlist[1][-4],rlist)]
             if initial_mol.model_p == None or final_mol.model_p == None:
-                print(f'{reaction} -- IS:{initial_mol.model_p};FS:{final_mol.model_p}')
+                #print(f'{reaction} -- IS:{initial_mol.model_p};FS:{final_mol.model_p}')
+                pass
             else:
                 RR = rR.STARTfromBROKENtoBONDED(initial_mol.model_p,add_mol.model_p,final_mol.model_p)
                 RR.site_finder(slab)
                 RR.run(reaction)
                 if RR.IS == False or RR.FS == False:
-                    print(f'{reaction} -- IS{RR.IS} or FS{RR.FS} build wrong')
+                    #print(f'{reaction} -- IS{RR.IS} or FS{RR.FS} build wrong')
+                    pass
                 else:
                     ISNNSYS,FSNNSYS=RR.NNsystemInfo()
                     subfolder = f'{mainfolder}{rlist[0][0]}_{rlist[-1][0]}/'

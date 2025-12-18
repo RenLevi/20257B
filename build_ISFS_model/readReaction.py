@@ -1680,6 +1680,8 @@ class STARTfromBROKENtoBONDED():
                 sitepldict = {'top':topsitepl,'bridge':bridegsitepl,'3th_multifold':hccsitepl}
                 DQ4site1 = DistanceQuery(sitepldict[site1[-2]])
                 result_idxlist = DQ4site1.find_points_at_distance(query_point=bap_a1,target_distance=3,tolerance=0.5)
+                if result_idxlist == []:
+                    result_idxlist = DQ4site1.find_points_at_distance(query_point=bap_a1,target_distance=4,tolerance=1)
                 _,max_point1 = select_site_with_max_dist(result_idxlist,base_mol,sitepldict[site1[-2]],o1)
                 DQ4site2 = DistanceQuery(sitepldict[site2[-2]])
                 site2_idxlist=DQ4site2.find_points_at_distance(max_point1,distsite12,tolerance=0.5,opt=0)
