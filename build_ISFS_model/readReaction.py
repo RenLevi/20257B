@@ -1432,7 +1432,7 @@ def checkbond_a3(reaction:list,a1,a3):#！重点关照
         cs12 = (mol2,mol1,bms2,bms1)
         return warp(cs12)
     elif reactiontype == 'Remove':
-        cs12 = (mol1,mol2,bms1,bms2)
+        cs12 = (mol2,mol1,bms2,bms1)
         if addatom == 'O/OH':
             o1,o2,o3,o4 = warp(cs12,add='O')
             if o1 == None and o2 == None and o3 == None and o4 == None:
@@ -1547,9 +1547,9 @@ class NN_system():
         self.ads_data = None
         self.atoms = None
     def RunCheckNN_FindSite(self,file,finder):
-        print(file)
         cb = checkBonds()
         if type(file) == str:
+            print(file)
             cb.input(file)
         else:cb.poscar=file
         cb.AddAtoms()
@@ -1614,7 +1614,7 @@ class STARTfromBROKENtoBONDED():
                 bridge[atom_indices]=self.site_positions[atom_indices]
             else:
                 hcc[atom_indices]=self.site_positions[atom_indices]
-        def warp(rl,a1,a2,a3):
+        def warp(rl,a1,a2,a3):#a1 + a2 =a3
             o1,o2,self.tf,ids_mol = checkbond_a1a2(rl,a1,a2,a3)#id in atoms
             bid_mol,eid_mol,_,_ = checkbond_a3(rl,a1,a3)
             print(o1,o2,bid_mol,eid_mol)
@@ -1664,6 +1664,8 @@ class STARTfromBROKENtoBONDED():
                     bap_a1 = base_mol[o1].position
                     DQ = DistanceQuery(hccsitepl)
                     result_idxlist = DQ.find_points_at_distance(query_point=bap_a1,target_distance=3,tolerance=1)
+                    if result_idxlist == []:
+                        result_idxlist = DQ.find_points_at_distance(query_point=bap_a1,target_distance=4,tolerance=1,opt=0)
                     _,sp4a2 = select_site_with_max_dist(result_idxlist,base_mol,hccsitepl,o1)
                     v_trans = sp4a2-a2sp
                     mola2.positions += v_trans
@@ -1679,9 +1681,9 @@ class STARTfromBROKENtoBONDED():
                 distsite12=np.linalg.norm(site1[0]- site2[0])
                 sitepldict = {'top':topsitepl,'bridge':bridegsitepl,'3th_multifold':hccsitepl}
                 DQ4site1 = DistanceQuery(sitepldict[site1[-2]])
-                result_idxlist = DQ4site1.find_points_at_distance(query_point=bap_a1,target_distance=3,tolerance=0.5)
+                result_idxlist = DQ4site1.find_points_at_distance(query_point=bap_a1,target_distance=3,tolerance=1)
                 if result_idxlist == []:
-                    result_idxlist = DQ4site1.find_points_at_distance(query_point=bap_a1,target_distance=4,tolerance=1)
+                    result_idxlist = DQ4site1.find_points_at_distance(query_point=bap_a1,target_distance=4,tolerance=1,opt=0)
                 _,max_point1 = select_site_with_max_dist(result_idxlist,base_mol,sitepldict[site1[-2]],o1)
                 DQ4site2 = DistanceQuery(sitepldict[site2[-2]])
                 site2_idxlist=DQ4site2.find_points_at_distance(max_point1,distsite12,tolerance=0.5,opt=0)
@@ -1915,11 +1917,14 @@ class STARTfromBROKENtoBONDED():
                     a3sys[id].position += v_trans
                     
             else:print('怎么可能吸附位点数量同时不满足大于1，等于1，小于1；它是分数吗')
-            self.group1 = a3sys
+            self.group1 = a3sys#bonded
             self.a3onlymol=base_mol+a3sys
             return self.group2,self.group1 
         #print(a1.bms.smiles,len(a1.ads_data),a2.bms.smiles,len(a2.ads_data))
-        self.IS,self.FS = warp(self.r,a1,a2,a3)
+        if self.r[1][0] == 'Add':
+            self.IS,self.FS = warp(self.r,a1,a2,a3)#a1+a2=a3
+        elif self.r[1][0] == 'Remove':
+            self.FS,self.IS = warp(self.r,a3,a2,a1)#a3+a2=a1
         print(f'finish:{reaction}')
         return self.IS,self.FS
     def NNsystemInfo(self):
