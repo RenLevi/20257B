@@ -1,0 +1,1130 @@
+Start reading data from opt
+Finish reading data from opt
+C > Add O on 1th C > CO
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/C/16/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/O/8/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/CO/3/nequipOpt.traj
+C 1 O 1
+[['C'], ['Add', 'O', 'on', '1th', 'C'], ['CO']]
+0 1 64 64
+64 64 ad2ad (0, 1)
+{'C', 'O'}
+C.O
+qset {'C', 'O'}
+36.99972674143624 100
+0 1 C.O C.O
+3th_multifold
+[H]C > Add O on 1th C > [H]CO
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C/14/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/O/8/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]CO/5/nequipOpt.traj
+[H]C 1 O 1
+[['[H]C'], ['Add', 'O', 'on', '1th', 'C'], ['[H]CO']]
+0 2 64 64
+64 64 ad2ad (0, 2)
+{'C', 'O'}
+O.[H]C
+qset {'C', 'O'}
+36.445636734543 100
+0 1 O.[H]C O.[H]C
+3th_multifold
+[H]C([H])C([H])O > Add O on 1th C > [H]C(O)C([H])([H])O
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])C([H])O/17/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/O/8/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C(O)C([H])([H])O/16/nequipOpt.traj
+[H]C([H])C([H])O 4 O 1
+[['[H]C([H])C([H])O'], ['Add', 'O', 'on', '1th', 'C'], ['[H]C(O)C([H])([H])O']]
+0 6 64 64
+64 64 ad2ad (0, 6)
+{'C', 'O'}
+O.[H]CC([H])([H])O
+qset {'C', 'O'}
+O.[H]C([H])C([H])O
+qset {'C', 'O'}
+37.19781324893722 100
+2 3 O.[H]C([H])C([H])O O.[H]C([H])C([H])O
+3th_multifold
+[H]C([H])OC > Add O on 1th C > [H]C([H])(O)OC -- IS:/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])OC/18/nequipOpt.traj;FS:None
+[H]C([H])[H] > Add O on 1th C > [H]C([H])([H])O
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])[H]/8/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/O/8/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])([H])O/12/nequipOpt.traj
+[H]C([H])[H] 1 O 1
+[['[H]C([H])[H]'], ['Add', 'O', 'on', '1th', 'C'], ['[H]C([H])([H])O']]
+0 4 64 64
+64 64 ad2ad (0, 4)
+{'C', 'O'}
+O.[H]C([H])[H]
+qset {'C', 'O'}
+37.24245968381122 100
+0 1 O.[H]C([H])[H] O.[H]C([H])[H]
+3th_multifold
+[H]CC([H])([H])O > Add O on 1th C > [H]C(O)C([H])([H])O
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]CC([H])([H])O/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/O/8/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C(O)C([H])([H])O/16/nequipOpt.traj
+[H]CC([H])([H])O 2 O 1
+[['[H]CC([H])([H])O'], ['Add', 'O', 'on', '1th', 'C'], ['[H]C(O)C([H])([H])O']]
+0 6 64 64
+64 64 ad2ad (0, 6)
+{'C', 'O'}
+O.[H]CC([H])([H])O
+qset {'C', 'O'}
+40.42750539783488 100
+O.[H]C([H])C([H])O
+qset {'C', 'O'}
+0 1 O.[H]CC([H])([H])O O.[H]CC([H])([H])O
+3th_multifold
+[H]CC([H])([H])O[H] > Add O on 1th C > [H]OC([H])([H])C([H])O
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]CC([H])([H])O[H]/14/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/O/8/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])([H])C([H])O/3/nequipOpt.traj
+[H]CC([H])([H])O[H] 2 O 1
+[['[H]CC([H])([H])O[H]'], ['Add', 'O', 'on', '1th', 'C'], ['[H]OC([H])([H])C([H])O']]
+0 7 64 64
+64 64 ad2ad (0, 7)
+{'C', 'O'}
+[H]C([H])C([H])O.[H]O
+qset {'C', 'O'}
+O.[H]CC([H])([H])O[H]
+qset {'C', 'O'}
+36.486409445682526 100
+2 3 O.[H]CC([H])([H])O[H] O.[H]CC([H])([H])O[H]
+3th_multifold
+[H]CC([H])O[H] > Add O on 1th C > [H]OC([H])C([H])O
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]CC([H])O[H]/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/O/8/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])C([H])O/7/nequipOpt.traj
+[H]CC([H])O[H] 3 O 1
+[['[H]CC([H])O[H]'], ['Add', 'O', 'on', '1th', 'C'], ['[H]OC([H])C([H])O']]
+0 6 64 64
+64 64 ad2ad (0, 6)
+{'C', 'O'}
+[H]CC([H])O.[H]O
+qset {'C', 'O'}
+O.[H]CC([H])O[H]
+qset {'C', 'O'}
+36.70313457032306 100
+2 3 O.[H]CC([H])O[H] O.[H]CC([H])O[H]
+3th_multifold
+[H]CC([H])[H] > Add O on 1th C > [H]CC([H])([H])O
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]CC([H])[H]/11/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/O/8/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]CC([H])([H])O/2/nequipOpt.traj
+[H]CC([H])[H] 3 O 1
+[['[H]CC([H])[H]'], ['Add', 'O', 'on', '1th', 'C'], ['[H]CC([H])([H])O']]
+0 5 64 64
+1 5 65 64
+65 64 ad2ad (1, 5)
+{'C', 'O'}
+O.[H]CC([H])[H]
+qset {'C', 'O'}
+37.449606181409706 100
+1 2 O.[H]CC([H])[H] O.[H]CC([H])[H]
+3th_multifold
+[H]COC([H])[H] > Add O on 1th C > [H]COC([H])([H])O
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]COC([H])[H]/11/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/O/8/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]COC([H])([H])O/15/nequipOpt.traj
+[H]COC([H])[H] 3 O 1
+[['[H]COC([H])[H]'], ['Add', 'O', 'on', '1th', 'C'], ['[H]COC([H])([H])O']]
+0 6 64 64
+2 6 66 64
+66 64 ad2ad (2, 6)
+{'C', 'O'}
+[H]C.[H]C([H])(O)O
+qset {'C', 'O'}
+[H]C([H])O.[H]CO
+qset {'C', 'O'}
+O.[H]COC([H])[H]
+qset {'C', 'O'}
+37.25932043090329 100
+2 3 O.[H]COC([H])[H] O.[H]COC([H])[H]
+3th_multifold
+[H]CO[H] > Add O on 1th C > [H]OC([H])O
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]CO[H]/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/O/8/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])O/20/nequipOpt.traj
+[H]CO[H] 2 O 1
+[['[H]CO[H]'], ['Add', 'O', 'on', '1th', 'C'], ['[H]OC([H])O']]
+0 4 64 64
+64 64 ad2ad (0, 4)
+{'C', 'O'}
+[H]CO.[H]O
+qset {'C', 'O'}
+O.[H]CO[H]
+qset {'C', 'O'}
+38.159777469149674 100
+1 2 O.[H]CO[H] O.[H]CO[H]
+3th_multifold
+[H]C[H] > Add O on 1th C > [H]C([H])O
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C[H]/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/O/8/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])O/5/nequipOpt.traj
+[H]C[H] 2 O 1
+[['[H]C[H]'], ['Add', 'O', 'on', '1th', 'C'], ['[H]C([H])O']]
+0 3 64 64
+64 64 ad2ad (0, 3)
+{'C', 'O'}
+O.[H]C[H]
+qset {'C', 'O'}
+36.466813010881495 100
+0 1 O.[H]C[H] O.[H]C[H]
+3th_multifold
+[H]OC > Add O on 1th C > [H]OCO
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/O/8/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OCO/16/nequipOpt.traj
+[H]OC 1 O 1
+[['[H]OC'], ['Add', 'O', 'on', '1th', 'C'], ['[H]OCO']]
+1 3 65 64
+65 64 ad2ad (1, 3)
+{'C', 'O'}
+CO.[H]O
+qset {'C', 'O'}
+O.[H]OC
+qset {'C', 'O'}
+36.9376008711418 100
+1 2 O.[H]OC O.[H]OC
+3th_multifold
+[H]OC([H])([H])C([H])[H] > Add O on 1th C > [H]OC([H])([H])C([H])([H])O
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])([H])C([H])[H]/7/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/O/8/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])([H])C([H])([H])O/18/nequipOpt.traj
+[H]OC([H])([H])C([H])[H] 1 O 1
+[['[H]OC([H])([H])C([H])[H]'], ['Add', 'O', 'on', '1th', 'C'], ['[H]OC([H])([H])C([H])([H])O']]
+2 8 66 64
+66 64 ad2ad (2, 8)
+{'C', 'O'}
+O.[H]OC([H])([H])C([H])[H]
+qset {'C', 'O'}
+37.20446922435498 100
+[H]C([H])C([H])([H])O.[H]O
+qset {'C', 'O'}
+0 1 O.[H]OC([H])([H])C([H])[H] O.[H]OC([H])([H])C([H])[H]
+3th_multifold
+[H]OC([H])C([H])[H] > Add O on 1th C > [H]OC([H])C([H])([H])O
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])C([H])[H]/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/O/8/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])C([H])([H])O/10/nequipOpt.traj
+[H]OC([H])C([H])[H] 3 O 1
+[['[H]OC([H])C([H])[H]'], ['Add', 'O', 'on', '1th', 'C'], ['[H]OC([H])C([H])([H])O']]
+1 7 65 64
+2 7 66 64
+66 64 ad2ad (2, 7)
+{'C', 'O'}
+[H]CC([H])([H])O.[H]O
+qset {'C', 'O'}
+O.[H]OC([H])C([H])[H]
+qset {'C', 'O'}
+37.642484258213784 100
+2 3 O.[H]OC([H])C([H])[H] O.[H]OC([H])C([H])[H]
+3th_multifold
+[H]OC([H])[H] > Add O on 1th C > [H]OC([H])([H])O
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])[H]/8/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/O/8/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])([H])O/14/nequipOpt.traj
+[H]OC([H])[H] 3 O 1
+[['[H]OC([H])[H]'], ['Add', 'O', 'on', '1th', 'C'], ['[H]OC([H])([H])O']]
+1 5 65 64
+65 64 ad2ad (1, 5)
+{'C', 'O'}
+[H]C([H])O.[H]O
+qset {'C', 'O'}
+O.[H]OC([H])[H]
+qset {'C', 'O'}
+37.28225766245532 100
+1 2 O.[H]OC([H])[H] O.[H]OC([H])[H]
+3th_multifold
+C > Add OH on 1th C > [H]OC
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/C/16/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]O/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC/12/nequipOpt.traj
+C 1 [H]O 1
+[['C'], ['Add', 'OH', 'on', '1th', 'C'], ['[H]OC']]
+0 1 64 64
+64 64 ad2ad (0, 1)
+{'C', 'O'}
+C.[H]O
+qset {'C', 'O'}
+36.85301289230718 100
+0 1 C.[H]O C.[H]O
+bridge
+[H]C > Add OH on 1th C > [H]CO[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C/14/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]O/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]CO[H]/12/nequipOpt.traj
+[H]C 1 [H]O 1
+[['[H]C'], ['Add', 'OH', 'on', '1th', 'C'], ['[H]CO[H]']]
+0 2 64 64
+64 64 ad2ad (0, 2)
+{'C', 'O'}
+[H]C.[H]O
+qset {'C', 'O'}
+36.9764653127157 100
+0 1 [H]C.[H]O [H]C.[H]O
+bridge
+[H]C([H])C([H])([H])O > Add OH on 1th C > [H]OC([H])([H])C([H])([H])O
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])C([H])([H])O/13/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]O/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])([H])C([H])([H])O/18/nequipOpt.traj
+[H]C([H])C([H])([H])O 2 [H]O 1
+[['[H]C([H])C([H])([H])O'], ['Add', 'OH', 'on', '1th', 'C'], ['[H]OC([H])([H])C([H])([H])O']]
+0 7 64 64
+64 64 ad2ad (0, 7)
+{'C', 'O'}
+O.[H]OC([H])([H])C([H])[H]
+qset {'C', 'O'}
+[H]C([H])C([H])([H])O.[H]O
+qset {'C', 'O'}
+39.55175699657764 100
+2 3 [H]C([H])C([H])([H])O.[H]O [H]C([H])C([H])([H])O.[H]O
+bridge
+[H]C([H])C([H])O > Add OH on 1th C > [H]OC([H])([H])C([H])O
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])C([H])O/17/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]O/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])([H])C([H])O/3/nequipOpt.traj
+[H]C([H])C([H])O 4 [H]O 1
+[['[H]C([H])C([H])O'], ['Add', 'OH', 'on', '1th', 'C'], ['[H]OC([H])([H])C([H])O']]
+0 6 64 64
+64 64 ad2ad (0, 6)
+{'C', 'O'}
+[H]C([H])C([H])O.[H]O
+qset {'C', 'O'}
+38.00669716437885 100
+O.[H]CC([H])([H])O[H]
+qset {'C', 'O'}
+0 1 [H]C([H])C([H])O.[H]O [H]C([H])C([H])O.[H]O
+bridge
+[H]C([H])O > Add OH on 1th C > [H]OC([H])([H])O
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])O/5/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]O/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])([H])O/14/nequipOpt.traj
+[H]C([H])O 2 [H]O 1
+[['[H]C([H])O'], ['Add', 'OH', 'on', '1th', 'C'], ['[H]OC([H])([H])O']]
+0 4 64 64
+64 64 ad2ad (0, 4)
+{'C', 'O'}
+[H]C([H])O.[H]O
+qset {'C', 'O'}
+38.99433572077466 100
+O.[H]OC([H])[H]
+qset {'C', 'O'}
+0 1 [H]C([H])O.[H]O [H]C([H])O.[H]O
+bridge
+[H]C([H])OC > Add OH on 1th C > [H]OC([H])([H])OC
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])OC/18/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]O/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])([H])OC/1/nequipOpt.traj
+[H]C([H])OC 2 [H]O 1
+[['[H]C([H])OC'], ['Add', 'OH', 'on', '1th', 'C'], ['[H]OC([H])([H])OC']]
+0 5 64 64
+64 64 ad2ad (0, 5)
+{'C', 'O'}
+[H]C([H])OC.[H]O
+qset {'C', 'O'}
+39.547342429857565 100
+CO.[H]OC([H])[H]
+qset {'C', 'O'}
+C.[H]OC([H])([H])O
+qset {'C', 'O'}
+0 1 [H]C([H])OC.[H]O [H]C([H])OC.[H]O
+bridge
+[H]C([H])[H] > Add OH on 1th C > [H]OC([H])([H])[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])[H]/8/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]O/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])([H])[H]/9/nequipOpt.traj
+[H]C([H])[H] 1 [H]O 1
+[['[H]C([H])[H]'], ['Add', 'OH', 'on', '1th', 'C'], ['[H]OC([H])([H])[H]']]
+0 4 64 64
+64 64 ad2ad (0, 4)
+{'C', 'O'}
+[H]C([H])[H].[H]O
+qset {'C', 'O'}
+38.23956363223182 100
+0 1 [H]C([H])[H].[H]O [H]C([H])[H].[H]O
+bridge
+[H]CO > Add OH on 1th C > [H]OC([H])O
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]CO/5/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]O/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])O/20/nequipOpt.traj
+[H]CO 2 [H]O 1
+[['[H]CO'], ['Add', 'OH', 'on', '1th', 'C'], ['[H]OC([H])O']]
+0 3 64 64
+64 64 ad2ad (0, 3)
+{'C', 'O'}
+[H]CO.[H]O
+qset {'C', 'O'}
+38.915712977870015 100
+O.[H]CO[H]
+qset {'C', 'O'}
+0 1 [H]CO.[H]O [H]CO.[H]O
+bridge
+[H]COC([H])[H] > Add OH on 1th C > [H]COC([H])([H])O[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]COC([H])[H]/11/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]O/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]COC([H])([H])O[H]/19/nequipOpt.traj
+[H]COC([H])[H] 3 [H]O 1
+[['[H]COC([H])[H]'], ['Add', 'OH', 'on', '1th', 'C'], ['[H]COC([H])([H])O[H]']]
+0 6 64 64
+2 6 66 64
+66 64 ad2ad (2, 6)
+{'C', 'O'}
+[H]C.[H]OC([H])([H])O
+qset {'C', 'O'}
+[H]CO.[H]OC([H])[H]
+qset {'C', 'O'}
+[H]COC([H])[H].[H]O
+qset {'C', 'O'}
+38.26664197321179 100
+2 3 [H]COC([H])[H].[H]O [H]COC([H])[H].[H]O
+bridge
+[H]C[H] > Add OH on 1th C > [H]OC([H])[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C[H]/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]O/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])[H]/8/nequipOpt.traj
+[H]C[H] 2 [H]O 1
+[['[H]C[H]'], ['Add', 'OH', 'on', '1th', 'C'], ['[H]OC([H])[H]']]
+0 3 64 64
+64 64 ad2ad (0, 3)
+{'C', 'O'}
+[H]C[H].[H]O
+qset {'C', 'O'}
+36.773582544622684 100
+0 1 [H]C[H].[H]O [H]C[H].[H]O
+bridge
+[H]OC([H])C([H])[H] > Add OH on 1th C > [H]OC([H])C([H])([H])O[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])C([H])[H]/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]O/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])C([H])([H])O[H]/9/nequipOpt.traj
+[H]OC([H])C([H])[H] 3 [H]O 1
+[['[H]OC([H])C([H])[H]'], ['Add', 'OH', 'on', '1th', 'C'], ['[H]OC([H])C([H])([H])O[H]']]
+1 7 65 64
+2 7 66 64
+66 64 ad2ad (2, 7)
+{'C', 'O'}
+[H]CC([H])([H])O[H].[H]O
+qset {'C', 'O'}
+[H]O.[H]OC([H])C([H])[H]
+qset {'C', 'O'}
+39.19121927078285 100
+2 3 [H]O.[H]OC([H])C([H])[H] [H]O.[H]OC([H])C([H])[H]
+bridge
+CO > Add C on 1th O > COC
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/CO/3/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/C/16/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/COC/10/nequipOpt.traj
+CO 1 C 1
+[['CO'], ['Add', 'C', 'on', '1th', 'O'], ['COC']]
+65 64 Nad2ad (1, 2)
+{'C', 'O'}
+C.CO
+qset {'C', 'O'}
+36.648002682691555 100
+C.CO
+qset {'C', 'O'}
+36.49175998533703 36.648002682691555
+1 2 C.CO C.CO
+3th_multifold
+[H]C([H])([H])O > Add C on 1th O > [H]C([H])([H])OC
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])([H])O/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/C/16/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])([H])OC/9/nequipOpt.traj
+[H]C([H])([H])O 1 C 1
+[['[H]C([H])([H])O'], ['Add', 'C', 'on', '1th', 'O'], ['[H]C([H])([H])OC']]
+1 5 65 64
+65 64 ad2ad (1, 5)
+{'C', 'O'}
+CO.[H]C([H])[H]
+qset {'C', 'O'}
+C.[H]C([H])([H])O
+qset {'C', 'O'}
+36.88653187531817 100
+1 2 C.[H]C([H])([H])O C.[H]C([H])([H])O
+3th_multifold
+[H]C([H])O > Add C on 1th O > [H]C([H])OC
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])O/5/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/C/16/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])OC/18/nequipOpt.traj
+[H]C([H])O 2 C 1
+[['[H]C([H])O'], ['Add', 'C', 'on', '1th', 'O'], ['[H]C([H])OC']]
+1 4 65 64
+65 64 ad2ad (1, 4)
+{'C', 'O'}
+CO.[H]C[H]
+qset {'C', 'O'}
+C.[H]C([H])O
+qset {'C', 'O'}
+36.80753128975505 100
+1 2 C.[H]C([H])O C.[H]C([H])O
+3th_multifold
+[H]CO > Add C on 1th O > [H]COC
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]CO/5/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/C/16/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]COC/15/nequipOpt.traj
+[H]CO 2 C 1
+[['[H]CO'], ['Add', 'C', 'on', '1th', 'O'], ['[H]COC']]
+1 3 65 64
+65 64 ad2ad (1, 3)
+{'C', 'O'}
+CO.[H]C
+qset {'C', 'O'}
+C.[H]CO
+qset {'C', 'O'}
+36.445429645460536 100
+1 2 C.[H]CO C.[H]CO
+3th_multifold
+[H]OC([H])([H])O > Add C on 1th O > [H]OC([H])([H])OC
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])([H])O/14/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/C/16/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])([H])OC/1/nequipOpt.traj
+[H]OC([H])([H])O 1 C 1
+[['[H]OC([H])([H])O'], ['Add', 'C', 'on', '1th', 'O'], ['[H]OC([H])([H])OC']]
+2 6 66 64
+66 64 ad2ad (2, 6)
+{'C', 'O'}
+[H]C([H])OC.[H]O
+qset {'C', 'O'}
+CO.[H]OC([H])[H]
+qset {'C', 'O'}
+C.[H]OC([H])([H])O
+qset {'C', 'O'}
+36.891379680256776 100
+2 3 C.[H]OC([H])([H])O C.[H]OC([H])([H])O
+3th_multifold
+[H]OC([H])O > Add C on 1th O > [H]OC([H])OC
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])O/20/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/C/16/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])OC/1/nequipOpt.traj
+[H]OC([H])O 1 C 1
+[['[H]OC([H])O'], ['Add', 'C', 'on', '1th', 'O'], ['[H]OC([H])OC']]
+2 5 66 64
+66 64 ad2ad (2, 5)
+{'C', 'O'}
+[H]COC.[H]O
+qset {'C', 'O'}
+CO.[H]CO[H]
+qset {'C', 'O'}
+C.[H]OC([H])O
+qset {'C', 'O'}
+36.86696020753678 100
+2 3 C.[H]OC([H])O C.[H]OC([H])O
+3th_multifold
+[H]OCO > Add C on 1th O > [H]OCOC
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OCO/16/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/C/16/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OCOC/16/nequipOpt.traj
+[H]OCO 2 C 1
+[['[H]OCO'], ['Add', 'C', 'on', '1th', 'O'], ['[H]OCOC']]
+2 4 66 64
+66 64 ad2ad (2, 4)
+{'C', 'O'}
+COC.[H]O
+qset {'C', 'O'}
+CO.[H]OC
+qset {'C', 'O'}
+C.[H]OCO
+qset {'C', 'O'}
+36.49421244683421 100
+2 3 C.[H]OCO C.[H]OCO
+3th_multifold
+CO > Add CO on 1th O > COCO -- IS:/public/home/ac877eihwp/renyq/C2/test/opt/system/species/CO/3/nequipOpt.traj;FS:None
+[H]C([H])([H])O > Add CO on 1th O > [H]C([H])([H])OCO
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])([H])O/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/CO/3/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])([H])OCO/6/nequipOpt.traj
+[H]C([H])([H])O 1 CO 1
+[['[H]C([H])([H])O'], ['Add', 'CO', 'on', '1th', 'O'], ['[H]C([H])([H])OCO']]
+1 5 65 64
+65 64 ad2ad (1, 5)
+{'C', 'O'}
+OCO.[H]C([H])[H]
+qset {'C', 'O'}
+CO.[H]C([H])([H])O
+qset {'C', 'O'}
+37.656583780000645 100
+O.[H]C([H])([H])OC
+qset {'C', 'O'}
+1 2 CO.[H]C([H])([H])O CO.[H]C([H])([H])O
+bridge
+[H]C([H])O > Add CO on 1th O > [H]C([H])OCO
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])O/5/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/CO/3/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])OCO/10/nequipOpt.traj
+[H]C([H])O 2 CO 1
+[['[H]C([H])O'], ['Add', 'CO', 'on', '1th', 'O'], ['[H]C([H])OCO']]
+1 4 65 64
+65 64 ad2ad (1, 4)
+{'C', 'O'}
+OCO.[H]C[H]
+qset {'C', 'O'}
+CO.[H]C([H])O
+qset {'C', 'O'}
+37.22814847507485 100
+O.[H]C([H])OC
+qset {'C', 'O'}
+1 2 CO.[H]C([H])O CO.[H]C([H])O
+bridge
+[H]CO > Add CO on 1th O > [H]COCO -- IS:/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]CO/5/nequipOpt.traj;FS:None
+CO > Add H on 1th C > [H]CO
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/CO/3/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]CO/5/nequipOpt.traj
+CO 1 [H] 1
+[['CO'], ['Add', 'H', 'on', '1th', 'C'], ['[H]CO']]
+0 2 64 64
+64 64 ad2ad (0, 2)
+{'C', 'H'}
+CO.[H]
+qset {'C', 'H'}
+37.032158686378665 100
+0 2 CO.[H] CO.[H]
+bridge
+COCO > Add H on 1th C > [H]C(O)OC -- IS:None;FS:/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C(O)OC/3/nequipOpt.traj
+OCO > Add H on 1th C > [H]C(O)O
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/OCO/11/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C(O)O/10/nequipOpt.traj
+OCO 3 [H] 1
+[['OCO'], ['Add', 'H', 'on', '1th', 'C'], ['[H]C(O)O']]
+1 3 65 64
+65 64 ad2ad (1, 3)
+{'C', 'H'}
+OCO.[H]
+qset {'C', 'H'}
+39.39086984157789 100
+0 3 OCO.[H] OCO.[H]
+bridge
+[H]C(O)O > Add H on 1th C > [H]C([H])(O)O
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C(O)O/10/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])(O)O/3/nequipOpt.traj
+[H]C(O)O 2 [H] 1
+[['[H]C(O)O'], ['Add', 'H', 'on', '1th', 'C'], ['[H]C([H])(O)O']]
+64 64 Nad2ad (0, 4)
+{'C', 'H'}
+[H].[H]C(O)O
+qset {'C', 'H'}
+38.60136237413657 100
+[H].[H]C(O)O
+qset {'C', 'H'}
+38.67613677797178 38.60136237413657
+0 3 [H].[H]C(O)O [H].[H]C(O)O
+bridge
+[H]C([H])O > Add H on 1th C > [H]C([H])([H])O
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])O/5/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])([H])O/12/nequipOpt.traj
+[H]C([H])O 2 [H] 1
+[['[H]C([H])O'], ['Add', 'H', 'on', '1th', 'C'], ['[H]C([H])([H])O']]
+0 4 64 64
+64 64 ad2ad (0, 4)
+{'C', 'H'}
+[H].[H]C([H])O
+qset {'C', 'H'}
+39.058703346645316 100
+[H].[H]C([H])O
+qset {'C', 'H'}
+39.01526011100902 39.058703346645316
+[H].[H]C([H])O
+qset {'C', 'H'}
+39.01325148972926 39.01526011100902
+0 3 [H].[H]C([H])O [H].[H]C([H])O
+bridge
+[H]CO > Add H on 1th C > [H]C([H])O
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]CO/5/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])O/5/nequipOpt.traj
+[H]CO 2 [H] 1
+[['[H]CO'], ['Add', 'H', 'on', '1th', 'C'], ['[H]C([H])O']]
+0 3 64 64
+64 64 ad2ad (0, 3)
+{'C', 'H'}
+[H].[H]CO
+qset {'C', 'H'}
+37.426384721008105 100
+[H].[H]CO
+qset {'C', 'H'}
+37.4037378939897 37.426384721008105
+0 2 [H].[H]CO [H].[H]CO
+bridge
+[H]CO[H] > Add H on 1th C > [H]OC([H])[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]CO[H]/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])[H]/8/nequipOpt.traj
+[H]CO[H] 2 [H] 1
+[['[H]CO[H]'], ['Add', 'H', 'on', '1th', 'C'], ['[H]OC([H])[H]']]
+0 4 64 64
+64 64 ad2ad (0, 4)
+{'C', 'H'}
+[H].[H]CO[H]
+qset {'C', 'H'}
+37.06410759058559 100
+[H].[H]CO[H]
+qset {'C', 'H'}
+36.52769533166729 37.06410759058559
+1 4 [H].[H]CO[H] [H].[H]CO[H]
+bridge
+[H]OC > Add H on 1th C > [H]CO[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]CO[H]/12/nequipOpt.traj
+[H]OC 1 [H] 1
+[['[H]OC'], ['Add', 'H', 'on', '1th', 'C'], ['[H]CO[H]']]
+1 3 65 64
+65 64 ad2ad (1, 3)
+{'C', 'H'}
+[H].[H]OC
+qset {'C', 'H'}
+35.988402352874594 100
+0 2 [H].[H]OC [H].[H]OC
+bridge
+[H]OC([H])O > Add H on 1th C > [H]OC([H])([H])O
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])O/20/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])([H])O/14/nequipOpt.traj
+[H]OC([H])O 1 [H] 1
+[['[H]OC([H])O'], ['Add', 'H', 'on', '1th', 'C'], ['[H]OC([H])([H])O']]
+65 64 Nad2ad (1, 5)
+{'C', 'H'}
+[H].[H]OC([H])O
+qset {'C', 'H'}
+39.115010612454086 100
+[H].[H]OC([H])O
+qset {'C', 'H'}
+39.112177359425914 39.115010612454086
+1 4 [H].[H]OC([H])O [H].[H]OC([H])O
+bridge
+[H]OC([H])[H] > Add H on 1th C > [H]OC([H])([H])[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])[H]/8/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])([H])[H]/9/nequipOpt.traj
+[H]OC([H])[H] 3 [H] 1
+[['[H]OC([H])[H]'], ['Add', 'H', 'on', '1th', 'C'], ['[H]OC([H])([H])[H]']]
+1 5 65 64
+65 64 ad2ad (1, 5)
+{'C', 'H'}
+[H].[H]OC([H])[H]
+qset {'C', 'H'}
+39.551979622129025 100
+[H].[H]OC([H])[H]
+qset {'C', 'H'}
+38.59223017269737 39.551979622129025
+[H].[H]OC([H])[H]
+qset {'C', 'H'}
+39.96547013852357 38.59223017269737
+1 3 [H].[H]OC([H])[H] [H].[H]OC([H])[H]
+bridge
+[H]OCO > Add H on 1th C > [H]OC([H])O
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OCO/16/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])O/20/nequipOpt.traj
+[H]OCO 2 [H] 1
+[['[H]OCO'], ['Add', 'H', 'on', '1th', 'C'], ['[H]OC([H])O']]
+1 4 65 64
+65 64 ad2ad (1, 4)
+{'C', 'H'}
+[H].[H]OCO
+qset {'C', 'H'}
+40.112423779587616 100
+1 4 [H].[H]OCO [H].[H]OCO
+bridge
+CO > Add H on 1th O > [H]OC
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/CO/3/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC/12/nequipOpt.traj
+CO 1 [H] 1
+[['CO'], ['Add', 'H', 'on', '1th', 'O'], ['[H]OC']]
+65 64 Nad2ad (1, 2)
+{'H', 'O'}
+CO.[H]
+qset {'H', 'O'}
+38.61192726576677 100
+0 2 CO.[H] CO.[H]
+bridge
+COCO > Add H on 1th O > [H]OCOC -- IS:None;FS:/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OCOC/16/nequipOpt.traj
+[H]C(O)C([H])([H])O > Add H on 1th O > [H]OC([H])([H])C([H])O
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C(O)C([H])([H])O/16/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])([H])C([H])O/3/nequipOpt.traj
+[H]C(O)C([H])([H])O 1 [H] 1
+[['[H]C(O)C([H])([H])O'], ['Add', 'H', 'on', '1th', 'O'], ['[H]OC([H])([H])C([H])O']]
+3 7 67 64
+67 64 ad2ad (3, 7)
+{'H', 'O'}
+[H].[H]C(O)C([H])([H])O
+qset {'H', 'O'}
+37.45363305547514 100
+0 4 [H].[H]C(O)C([H])([H])O [H].[H]C(O)C([H])([H])O
+bridge
+[H]C(O)C([H])([H])[H] > Add H on 1th O > [H]OC([H])C([H])([H])[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C(O)C([H])([H])[H]/15/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])C([H])([H])[H]/20/nequipOpt.traj
+[H]C(O)C([H])([H])[H] 2 [H] 1
+[['[H]C(O)C([H])([H])[H]'], ['Add', 'H', 'on', '1th', 'O'], ['[H]OC([H])C([H])([H])[H]']]
+1 7 65 64
+65 64 ad2ad (1, 7)
+{'H', 'O'}
+[H].[H]C(O)C([H])([H])[H]
+qset {'H', 'O'}
+38.01566719930001 100
+0 3 [H].[H]C(O)C([H])([H])[H] [H].[H]C(O)C([H])([H])[H]
+bridge
+[H]C(O)OC > Add H on 1th O > [H]OC([H])OC
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C(O)OC/3/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])OC/1/nequipOpt.traj
+[H]C(O)OC 2 [H] 1
+[['[H]C(O)OC'], ['Add', 'H', 'on', '1th', 'O'], ['[H]OC([H])OC']]
+1 5 65 64
+65 64 ad2ad (1, 5)
+{'H', 'O'}
+[H].[H]C(O)OC
+qset {'H', 'O'}
+37.824857380009384 100
+0 4 [H].[H]C(O)OC [H].[H]C(O)OC
+bridge
+[H]C([H])(O)OC > Add H on 1th O > [H]OC([H])([H])OC -- IS:None;FS:/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])([H])OC/1/nequipOpt.traj
+[H]C([H])([H])C([H])([H])O > Add H on 1th O > [H]OC([H])([H])C([H])([H])[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])([H])C([H])([H])O/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])([H])C([H])([H])[H]/2/nequipOpt.traj
+[H]C([H])([H])C([H])([H])O 1 [H] 1
+[['[H]C([H])([H])C([H])([H])O'], ['Add', 'H', 'on', '1th', 'O'], ['[H]OC([H])([H])C([H])([H])[H]']]
+2 8 66 64
+66 64 ad2ad (2, 8)
+{'H', 'O'}
+[H].[H]C([H])([H])C([H])([H])O
+qset {'H', 'O'}
+37.46981632060652 100
+0 3 [H].[H]C([H])([H])C([H])([H])O [H].[H]C([H])([H])C([H])([H])O
+bridge
+[H]C([H])([H])O > Add H on 1th O > [H]OC([H])([H])[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])([H])O/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])([H])[H]/9/nequipOpt.traj
+[H]C([H])([H])O 1 [H] 1
+[['[H]C([H])([H])O'], ['Add', 'H', 'on', '1th', 'O'], ['[H]OC([H])([H])[H]']]
+1 5 65 64
+65 64 ad2ad (1, 5)
+{'H', 'O'}
+[H].[H]C([H])([H])O
+qset {'H', 'O'}
+37.61182037060964 100
+0 2 [H].[H]C([H])([H])O [H].[H]C([H])([H])O
+bridge
+[H]C([H])C([H])([H])O > Add H on 1th O > [H]OC([H])([H])C([H])[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])C([H])([H])O/13/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])([H])C([H])[H]/7/nequipOpt.traj
+[H]C([H])C([H])([H])O 2 [H] 1
+[['[H]C([H])C([H])([H])O'], ['Add', 'H', 'on', '1th', 'O'], ['[H]OC([H])([H])C([H])[H]']]
+2 7 66 64
+66 64 ad2ad (2, 7)
+{'H', 'O'}
+[H].[H]C([H])C([H])([H])O
+qset {'H', 'O'}
+38.47231797494568 100
+0 3 [H].[H]C([H])C([H])([H])O [H].[H]C([H])C([H])([H])O
+bridge
+[H]C([H])C([H])O > Add H on 1th O > [H]OC([H])C([H])[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])C([H])O/17/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])C([H])[H]/12/nequipOpt.traj
+[H]C([H])C([H])O 4 [H] 1
+[['[H]C([H])C([H])O'], ['Add', 'H', 'on', '1th', 'O'], ['[H]OC([H])C([H])[H]']]
+2 6 66 64
+66 64 ad2ad (2, 6)
+{'H', 'O'}
+[H].[H]C([H])C([H])O
+qset {'H', 'O'}
+38.0666577789091 100
+0 3 [H].[H]C([H])C([H])O [H].[H]C([H])C([H])O
+bridge
+[H]C([H])O > Add H on 1th O > [H]OC([H])[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])O/5/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])[H]/8/nequipOpt.traj
+[H]C([H])O 2 [H] 1
+[['[H]C([H])O'], ['Add', 'H', 'on', '1th', 'O'], ['[H]OC([H])[H]']]
+1 4 65 64
+65 64 ad2ad (1, 4)
+{'H', 'O'}
+[H].[H]C([H])O
+qset {'H', 'O'}
+37.37825592614549 100
+0 2 [H].[H]C([H])O [H].[H]C([H])O
+bridge
+[H]C([H])OC([H])([H])O > Add H on 1th O > [H]OC([H])([H])OC([H])[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])OC([H])([H])O/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])([H])OC([H])[H]/3/nequipOpt.traj
+[H]C([H])OC([H])([H])O 2 [H] 1
+[['[H]C([H])OC([H])([H])O'], ['Add', 'H', 'on', '1th', 'O'], ['[H]OC([H])([H])OC([H])[H]']]
+3 8 67 64
+67 64 ad2ad (3, 8)
+{'H', 'O'}
+[H].[H]C([H])OC([H])([H])O
+qset {'H', 'O'}
+38.46799265771624 100
+0 4 [H].[H]C([H])OC([H])([H])O [H].[H]C([H])OC([H])([H])O
+bridge
+[H]CC([H])([H])O > Add H on 1th O > [H]CC([H])([H])O[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]CC([H])([H])O/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]CC([H])([H])O[H]/14/nequipOpt.traj
+[H]CC([H])([H])O 2 [H] 1
+[['[H]CC([H])([H])O'], ['Add', 'H', 'on', '1th', 'O'], ['[H]CC([H])([H])O[H]']]
+2 6 66 64
+66 64 ad2ad (2, 6)
+{'H', 'O'}
+[H].[H]CC([H])([H])O
+qset {'H', 'O'}
+38.30679884734062 100
+2 6 [H].[H]CC([H])([H])O [H].[H]CC([H])([H])O
+bridge
+[H]CC([H])O > Add H on 1th O > [H]CC([H])O[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]CC([H])O/8/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]CC([H])O[H]/12/nequipOpt.traj
+[H]CC([H])O 2 [H] 1
+[['[H]CC([H])O'], ['Add', 'H', 'on', '1th', 'O'], ['[H]CC([H])O[H]']]
+2 5 66 64
+66 64 ad2ad (2, 5)
+{'H', 'O'}
+[H].[H]CC([H])O
+qset {'H', 'O'}
+38.214737308299135 100
+2 5 [H].[H]CC([H])O [H].[H]CC([H])O
+bridge
+[H]CO > Add H on 1th O > [H]CO[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]CO/5/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]CO[H]/12/nequipOpt.traj
+[H]CO 2 [H] 1
+[['[H]CO'], ['Add', 'H', 'on', '1th', 'O'], ['[H]CO[H]']]
+1 3 65 64
+65 64 ad2ad (1, 3)
+{'H', 'O'}
+[H].[H]CO
+qset {'H', 'O'}
+38.12116679336288 100
+1 3 [H].[H]CO [H].[H]CO
+bridge
+[H]COC([H])([H])O > Add H on 1th O > [H]COC([H])([H])O[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]COC([H])([H])O/15/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]COC([H])([H])O[H]/19/nequipOpt.traj
+[H]COC([H])([H])O 3 [H] 1
+[['[H]COC([H])([H])O'], ['Add', 'H', 'on', '1th', 'O'], ['[H]COC([H])([H])O[H]']]
+3 7 67 64
+67 64 ad2ad (3, 7)
+{'H', 'O'}
+[H].[H]COC([H])([H])O
+qset {'H', 'O'}
+37.438208784547776 100
+3 7 [H].[H]COC([H])([H])O [H].[H]COC([H])([H])O
+bridge
+[H]COC([H])O > Add H on 1th O > [H]COC([H])O[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]COC([H])O/16/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]COC([H])O[H]/6/nequipOpt.traj
+[H]COC([H])O 3 [H] 1
+[['[H]COC([H])O'], ['Add', 'H', 'on', '1th', 'O'], ['[H]COC([H])O[H]']]
+3 6 67 64
+67 64 ad2ad (3, 6)
+{'H', 'O'}
+[H].[H]COC([H])O
+qset {'H', 'O'}
+37.67003856921504 100
+3 6 [H].[H]COC([H])O [H].[H]COC([H])O
+bridge
+[H]OC([H])([H])C([H])([H])O > Add H on 1th O > [H]OC([H])([H])C([H])([H])O[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])([H])C([H])([H])O/18/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])([H])C([H])([H])O[H]/14/nequipOpt.traj
+[H]OC([H])([H])C([H])([H])O 1 [H] 1
+[['[H]OC([H])([H])C([H])([H])O'], ['Add', 'H', 'on', '1th', 'O'], ['[H]OC([H])([H])C([H])([H])O[H]']]
+0 9 64 64
+64 64 ad2ad (0, 9)
+{'H', 'O'}
+[H].[H]OC([H])([H])C([H])([H])O
+qset {'H', 'O'}
+37.43711131617232 100
+[H].[H]OC([H])([H])C([H])([H])O
+qset {'H', 'O'}
+38.983299758575626 37.43711131617232
+0 4 [H].[H]OC([H])([H])C([H])([H])O [H].[H]OC([H])([H])C([H])([H])O
+bridge
+[H]OC([H])([H])C([H])O > Add H on 1th O > [H]OC([H])C([H])([H])O[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])([H])C([H])O/3/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])C([H])([H])O[H]/9/nequipOpt.traj
+[H]OC([H])([H])C([H])O 3 [H] 1
+[['[H]OC([H])([H])C([H])O'], ['Add', 'H', 'on', '1th', 'O'], ['[H]OC([H])C([H])([H])O[H]']]
+0 8 64 64
+3 8 67 64
+67 64 ad2ad (3, 8)
+{'H', 'O'}
+[H].[H]OC([H])([H])C([H])O
+qset {'H', 'O'}
+37.661229242580916 100
+[H].[H]OC([H])C([H])([H])O
+qset {'H', 'O'}
+0 4 [H].[H]OC([H])([H])C([H])O [H].[H]OC([H])([H])C([H])O
+bridge
+[H]OC([H])C([H])([H])O > Add H on 1th O > [H]OC([H])C([H])([H])O[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])C([H])([H])O/10/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]/2/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])C([H])([H])O[H]/9/nequipOpt.traj
+[H]OC([H])C([H])([H])O 3 [H] 1
+[['[H]OC([H])C([H])([H])O'], ['Add', 'H', 'on', '1th', 'O'], ['[H]OC([H])C([H])([H])O[H]']]
+0 8 64 64
+3 8 67 64
+67 64 ad2ad (3, 8)
+{'H', 'O'}
+[H].[H]OC([H])([H])C([H])O
+qset {'H', 'O'}
+[H].[H]OC([H])C([H])([H])O
+qset {'H', 'O'}
+38.8178361547961 100
+3 8 [H].[H]OC([H])C([H])([H])O [H].[H]OC([H])C([H])([H])O
+bridge
+CO > Add [H]C on 1th O > [H]COC
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/CO/3/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C/14/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]COC/15/nequipOpt.traj
+CO 1 [H]C 1
+[['CO'], ['Add', '[H]C', 'on', '1th', 'O'], ['[H]COC']]
+65 64 Nad2ad (1, 2)
+{'C', 'O'}
+CO.[H]C
+qset {'C', 'O'}
+36.84227652006736 100
+C.[H]CO
+qset {'C', 'O'}
+0 1 CO.[H]C CO.[H]C
+3th_multifold
+[H]C([H])([H])O > Add [H]C on 1th O > [H]COC([H])([H])[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])([H])O/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C/14/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]COC([H])([H])[H]/7/nequipOpt.traj
+[H]C([H])([H])O 1 [H]C 1
+[['[H]C([H])([H])O'], ['Add', '[H]C', 'on', '1th', 'O'], ['[H]COC([H])([H])[H]']]
+1 5 65 64
+65 64 ad2ad (1, 5)
+{'C', 'O'}
+[H]C.[H]C([H])([H])O
+qset {'C', 'O'}
+37.12279597840514 100
+[H]C([H])[H].[H]CO
+qset {'C', 'O'}
+0 1 [H]C.[H]C([H])([H])O [H]C.[H]C([H])([H])O
+3th_multifold
+[H]C([H])O > Add [H]C on 1th O > [H]COC([H])[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])O/5/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C/14/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]COC([H])[H]/11/nequipOpt.traj
+[H]C([H])O 2 [H]C 1
+[['[H]C([H])O'], ['Add', '[H]C', 'on', '1th', 'O'], ['[H]COC([H])[H]']]
+1 4 65 64
+65 64 ad2ad (1, 4)
+{'C', 'O'}
+[H]C.[H]C([H])O
+qset {'C', 'O'}
+36.35662276429868 100
+[H]CO.[H]C[H]
+qset {'C', 'O'}
+0 1 [H]C.[H]C([H])O [H]C.[H]C([H])O
+3th_multifold
+[H]CO > Add [H]C on 1th O > [H]COC[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]CO/5/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C/14/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]COC[H]/20/nequipOpt.traj
+[H]CO 2 [H]C 1
+[['[H]CO'], ['Add', '[H]C', 'on', '1th', 'O'], ['[H]COC[H]']]
+1 3 65 64
+65 64 ad2ad (1, 3)
+{'C', 'O'}
+[H]C.[H]CO
+qset {'C', 'O'}
+37.03341798403103 100
+[H]C.[H]CO
+qset {'C', 'O'}
+37.26164775197111 37.03341798403103
+0 1 [H]C.[H]CO [H]C.[H]CO
+3th_multifold
+[H]OC([H])([H])O > Add [H]C on 1th O > [H]COC([H])([H])O[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])([H])O/14/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C/14/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]COC([H])([H])O[H]/19/nequipOpt.traj
+[H]OC([H])([H])O 1 [H]C 1
+[['[H]OC([H])([H])O'], ['Add', '[H]C', 'on', '1th', 'O'], ['[H]COC([H])([H])O[H]']]
+2 6 66 64
+66 64 ad2ad (2, 6)
+{'C', 'O'}
+[H]C.[H]OC([H])([H])O
+qset {'C', 'O'}
+37.05085163654807 100
+[H]CO.[H]OC([H])[H]
+qset {'C', 'O'}
+[H]COC([H])[H].[H]O
+qset {'C', 'O'}
+0 1 [H]C.[H]OC([H])([H])O [H]C.[H]OC([H])([H])O
+3th_multifold
+[H]OC([H])O > Add [H]C on 1th O > [H]COC([H])O[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OC([H])O/20/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C/14/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]COC([H])O[H]/6/nequipOpt.traj
+[H]OC([H])O 1 [H]C 1
+[['[H]OC([H])O'], ['Add', '[H]C', 'on', '1th', 'O'], ['[H]COC([H])O[H]']]
+2 5 66 64
+66 64 ad2ad (2, 5)
+{'C', 'O'}
+[H]C.[H]OC([H])O
+qset {'C', 'O'}
+37.135338506033136 100
+[H]CO.[H]CO[H]
+qset {'C', 'O'}
+[H]COC[H].[H]O
+qset {'C', 'O'}
+0 1 [H]C.[H]OC([H])O [H]C.[H]OC([H])O
+3th_multifold
+[H]OCO > Add [H]C on 1th O > [H]COCO[H]
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]OCO/16/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C/14/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]COCO[H]/5/nequipOpt.traj
+[H]OCO 2 [H]C 1
+[['[H]OCO'], ['Add', '[H]C', 'on', '1th', 'O'], ['[H]COCO[H]']]
+2 4 66 64
+66 64 ad2ad (2, 4)
+{'C', 'O'}
+[H]C.[H]OCO
+qset {'C', 'O'}
+37.0986374121737 100
+[H]CO.[H]OC
+qset {'C', 'O'}
+[H]COC.[H]O
+qset {'C', 'O'}
+0 1 [H]C.[H]OCO [H]C.[H]OCO
+3th_multifold
+CO > Add [H]C([H])O on 1th O > [H]C([H])(O)OC -- IS:/public/home/ac877eihwp/renyq/C2/test/opt/system/species/CO/3/nequipOpt.traj;FS:None
+[H]C([H])([H])O > Add [H]C([H])O on 1th O > [H]C([H])([H])OC([H])([H])O
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])([H])O/12/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])O/5/nequipOpt.traj
+/public/home/ac877eihwp/renyq/C2/test/opt/system/species/[H]C([H])([H])OC([H])([H])O/19/nequipOpt.traj
+[H]C([H])([H])O 1 [H]C([H])O 2
+[['[H]C([H])([H])O'], ['Add', '[H]C([H])O', 'on', '1th', 'O'], ['[H]C([H])([H])OC([H])([H])O']]
+0 5 64 65
+64 65 ad2ad (0, 5)
+{'C', 'O'}
+[H]C([H])(O)O.[H]C([H])[H]
+qset {'C', 'O'}
+[H]C([H])([H])O.[H]C([H])O
+qset {'C', 'O'}
+O.[H]C([H])OC([H])([H])[H]
+qset {'C', 'O'}
+None None None None
+3th_multifold
+All jobs completed
