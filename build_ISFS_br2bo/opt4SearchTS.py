@@ -14,7 +14,6 @@ import re
 import os
 from pymatgen.analysis.local_env import CrystalNN,VoronoiNN,JmolNN
 from pymatgen.io.ase import AseAtomsAdaptor
-from scipy.spatial import cKDTree
 '''------------------------------------------------------'''
 class bond():
     def __init__(self,atoms):
@@ -56,10 +55,10 @@ class N_atom:
 class checkBonds():
     def __init__(self):
         self.atoms = []
-        #self.poscar = atom
+        self.poscar = atom
         self.adsorption = []
     def input(self,filename):
-        self.poscar = read(filename,index=-1)
+        self.poscar = read(filename)
 
     def AddAtoms(self):
         atoms= self.poscar
@@ -77,22 +76,22 @@ class checkBonds():
         else:
             print('PBC is not open')
             return False
+        
+
     def CheckAllBonds(self):
         neighbors_info_list,neighbors_idx_list = bond(self.poscar).judge_bondorder()
-        ithatom = {}
         for i in range(len(neighbors_idx_list)):
             ith_atom = self.atoms[i]
             if check_NON_metal_atoms(ith_atom) == True:
                 for j in neighbors_idx_list[i]:
                     jth_atom = self.atoms[j]
                     if check_NON_metal_atoms(jth_atom)==True:
-                        #print(f'there is a bond with {ith_atom.elesymbol}:{i} and {jth_atom.elesymbol}:{j}.')
+                        print(f'there is a bond with {ith_atom.elesymbol}:{i} and {jth_atom.elesymbol}:{j}.')
                         ith_atom.bonddict[jth_atom]=jth_atom.number
                         jth_atom.bonddict[ith_atom]=ith_atom.number
                     else:
-                        #print(f'there is adsorption with {ith_atom.elesymbol}:{i} and {jth_atom.elesymbol}:{j}.')
-                        ithatom[ith_atom.id]=ith_atom
-                self.adsorption = list(ithatom.values())
+                        print(f'there is adsorption with {ith_atom.elesymbol}:{i} and {jth_atom.elesymbol}:{j}.')
+                        self.adsorption.append(ith_atom)
             else:pass
 class BuildMol2Smiles():
     def __init__(self,CB:checkBonds):
@@ -125,70 +124,102 @@ class BuildMol2Smiles():
         self.mol = mol
         self.ads = CB.adsorption
 '''------------------------------------------------------'''
-def find_sites(self, contact_distance: float = 2.0, multi_site_threshold: float = 2):
-        """
-        识别表面位点
-        
-        参数:
-        contact_distance: 接触距离阈值 (Å)
-        multi_site_threshold: 多重位点识别阈值 (Å)
-        """
-        if self.wrapped_points is None:
-            raise ValueError("请先执行网格包裹")
-            
-        # 创建原子位置的KD树
-        atom_positions = self.all_positions
-        tree = cKDTree(atom_positions)
-        
-        # 对于每个包裹后的网格点，找到接触的原子
-        for i, point in enumerate(self.wrapped_points):
-            # 找到距离此点在一定范围内的所有原子
-            indices = tree.query_ball_point(point, contact_distance)
-            
-            if indices:
-                # 将原子索引转换为可哈希的元组
-                atom_tuple = tuple(sorted(indices))
-                self.site_atoms[atom_tuple].append(point)
-        
-        # 识别位点类型并计算位点位置
-class NN_system():
-    def __init__(self):
-        self.cb = None
-        self.bms = None
-        self.ads = None
-        self.only_mol = None
-        self.ads_data = None
-        self.atoms = None
-    def RunCheckNN_FindSite(self,file,finder):
-        print(file)
-        cb = checkBonds()
-        if type(file) == str:
-            cb.input(file)
-        else:cb.poscar=file
-        cb.AddAtoms()
-        cb.CheckAllBonds()
-        bms=BuildMol2Smiles(cb)
-        bms.build()
-        self.cb = cb 
-        self.bms = bms
-        self.ads = cb.adsorption
-        atoms = cb.poscar
-        self.atoms = atoms
-        indices_to_mol = [atom.index for atom in atoms if atom.symbol != 'Ru']
-        self.only_mol = atoms[indices_to_mol]
-        self.ads_data = find_site(cb.poscar,cb.adsorption,finder)
-        print(self.ads_data)
-        return self
+
 model_path = '/public/home/ac877eihwp/renyq/prototypeModel.pth'
 calc = NequIPCalculator.from_deployed_model(model_path, device='cpu')
-def read_data(file_name,p):
-    Atoms = read(file_name)
-    Atoms.calc = calc
-    opt = BFGS(Atoms,maxstep=0.05,trajectory=f'{p}FSopt.traj').run(fmax=0.01,steps=2000)
-    if opt == True :
-        print(f'Optimization converged successfully:{file_name}')
-    else: 
-        return ValueError(f'Optimization did not converge within the maximum number of steps:{file_name}')
+
+def read_data(file_name,model,answerlist,p):
+    def warp(A,answer,L):#[Reaction,bondatom,mainBodyIdx,subBodyIdx,bonded smiles,broken smiles]
+        atoms = copy.deepcopy(A)
+        alltest = checkBonds()
+        alltest.poscar = atoms
+        alltest.AddAtoms()
+        alltest.CheckAllBonds()
+        allbm2s = BuildMol2Smiles(alltest)
+        allbm2s.build()
+        frags = Chem.GetMolFrags(allbm2s.mol)
+        out_t = [bool(allbm2s.smiles == answer[L]),None,None]#ttt can pass
+        out_smi = [allbm2s.smiles,None,None]
+        for i in range(2,4):
+            model = copy.deepcopy(atoms)
+            indices_to_remove = answer[i]
+            mask = np.ones(len(model), dtype=bool)
+            mask[indices_to_remove] = False
+            model = model[mask]
+            test = checkBonds()
+            test.poscar = model
+            test.AddAtoms()
+            test.CheckAllBonds()
+            bm2s = BuildMol2Smiles(test)
+            bm2s.build()
+            out_smi[i-1]=bm2s.smiles
+            if bm2s.ads != []:
+                out_t[i-1] = True
+            else:
+                out_t[i-1] = False
+        temp=out_smi[-1]
+        out_smi[-1]=out_smi[-2]
+        out_smi[-2]=temp
+        temp=out_t[-1]
+        out_t[-1]=out_t[-2]
+        out_t[-2]=temp
+        return out_t,out_smi,len(frags)
+    [Reaction,bondatom,mainBodyIdx,subBodyIdx,bonded_smiles,broken_smiles] = answerlist
+    if model == 'FS':
+        Atoms = read(file_name)
+        Atoms.calc = calc
+        opt = BFGS(Atoms,maxstep=0.05,trajectory=f'{p}FSopt.traj').run(fmax=0.01,steps=2000)
+        if opt == True :
+            print('Optimization converged successfully.')
+        else: 
+            return ValueError('Optimization did not converge within the maximum number of steps.')
+    elif model == 'IS':
+        z1,z2,v3=0,0,0
+        Atoms = read(file_name)
+        bbb,sss,lf = warp(Atoms,answerlist,-1)
+        Atoms.calc = calc
+        BFGS(Atoms,trajectory='000.traj').run(steps=50)
+        bbb_t,sss_t,lf = warp(Atoms,answerlist,-1)
+        while bbb_t[0] == False:
+            print(f'{z1,z2,v3,sss,sss_t,lf}')#
+            c1,c2,c3 = bool(sss[1]==sss_t[1]), bool(sss[2]==sss_t[2]),bool(lf==1)
+            if c1 == False:
+                z1=1+z1
+            if c2 == False:
+                z2=1+z2
+            if c3 == True:
+                v3=1+v3
+            Atoms = read(file_name)
+            Atoms.calc = calc
+            centerMAIN=np.array([0,0,0])
+            centerSUB=np.array([0,0,0])
+            for mid in mainBodyIdx:
+                centerMAIN = centerMAIN+Atoms.positions[mid]
+            for sid in subBodyIdx:
+                centerSUB=centerSUB+Atoms.positions[sid]
+            CM = centerMAIN/len(mainBodyIdx)
+            CS = centerSUB/len(subBodyIdx)
+            M2S=CM-CS
+            M2S_new = M2S*(np.linalg.norm(M2S)+v3)/np.linalg.norm(M2S)
+            CS_new = CM-M2S_new
+            sv = CS_new-CS
+            for mid in mainBodyIdx:
+                Atoms.positions[mid] = Atoms.positions[mid]+np.array([0,0,z1])
+            for sid in subBodyIdx:
+                Atoms.positions[sid] = Atoms.positions[sid]+np.array([0,0,z2])+sv
+
+            BFGS(Atoms,trajectory=f'{z1}{z2}{v3}.traj').run(steps=50)
+            bbb_t,sss_t,lf= warp(Atoms,answerlist,-1)
+            if z1 >= 5 or z2 >=5 or v3 >= 5:
+                return ValueError(f'{Reaction}:Optimization of IS model did not converge owing to bond broken.')
+            else:pass
+        print(f'{z1,z2,v3,sss[0],sss_t[0]}')#
+        opt=BFGS(Atoms,maxstep=0.05,trajectory=f'{p}ISopt.traj').run(fmax=0.01,steps=1000)
+        if opt == True :
+            print('Optimization converged successfully.')
+        else: 
+            print('Optimization did not converge within the maximum number of steps.')
+    ''''''
     return Atoms
 def checkISFS(Atoms,model:str,answerlist):
     Reaction = answerlist[0]

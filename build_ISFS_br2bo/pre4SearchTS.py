@@ -1,4 +1,4 @@
-import build_ISFS_br2bo.preSearchTS.readReaction as rR
+import build_ISFS_br2bo.readReaction as rR
 import os
 import json
 from ase.io import read
@@ -516,6 +516,19 @@ class PREforSearchTS():
             else:
                 RR = rR.readreaction(initial_mol.model_p,final_mol.model_p,reaction)
                 RR.readfile()
+                RR.run_MDAO(f'{mainfolder}{rlist[0][0]}_{rlist[-1][0]}/',MLPs_model_path='prototypeModel.pth')
+                
+                check_atoms = RR.OUT2
+                check_atomsNN = rR.NN_system()
+                check_atomsNN.RunCheckNN_FindSite(check_atoms,self.site)
+                ads_data = check_atomsNN.ads_data
+                site_list =[]
+                for ads in ads_data:#ads:[nearest, distance,adsA.id,atom_indices,site_type, vector]
+                    site_list.append(ads[-2])
+                site_count = Counter(site_list)
+                code = int(f'1{site_count["top"]}2{site_count["bridge"]}3{site_count.get("3th_multifold",0)}')
+                print(code)
+
                 if RR.stop == False:
                     subfolder = f'{mainfolder}{rlist[0][0]}_{rlist[-1][0]}/'
                     data = {f'{rlist[0][0]}_{rlist[-1][0]}':[reaction,RR.changebondatom,RR.group1,RR.group2,RR.check,RR.split]}#File name ：[Reaction,atom bond changed,idx,idx,bonded smiles,broken smiles]
