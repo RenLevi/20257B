@@ -28,6 +28,7 @@ class checkBonds():
         self.poscar = atom
         self.adsorption = []
         self.bondsetlist=[]
+        self.adsorptAtom = []
     def input(self,filename):
         self.poscar = read(filename)
 
@@ -66,6 +67,7 @@ class checkBonds():
                             self.bondsetlist.append((ith_atom.id,jth_atom.id))
                     else:
                         #print(f'there is adsorption with {ith_atom.elesymbol}:{i} and {jth_atom.elesymbol}:{j}.')
+                        self.adsorptAtom.append(ith_atom)
                         self.adsorption.append(jth_atom)
             else:pass
 class BuildMol2Smiles():
@@ -97,10 +99,7 @@ class BuildMol2Smiles():
         smiles = Chem.MolToSmiles(mol)
         self.smiles = subHH(smiles)
         self.mol = mol
-        self.ads = CB.adsorption
-        
-
-
+        self.ads = CB.adsorptAtom
 
 if (__name__ == "__main__"):
     CB = checkBonds()

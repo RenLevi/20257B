@@ -380,6 +380,7 @@ class molfile():
         species = f'{path_test}opt/system/species/'
         self.species = species
         self.name = name
+        self.slab = slab
         for i in range(1,random+1):
             cb = rR.checkBonds()
             cb.input(f'{species}{name}/{i}/nequipOpt.traj')
@@ -457,7 +458,6 @@ class molfile():
                     TMPD[code]=[i]
             data=(TMPD,id)
         self.site_dict_data = data
-
     def check(self):
         def E_min(idl:list):
             E = []
@@ -481,12 +481,13 @@ class molfile():
             id = E_min(cp)
             self.model_p = f'{species}{name}/{id}/nequipOpt.traj'
 class PREforSearchTS():
-    def __init__(self,path_test):
+    def __init__(self,path_test,I=None):
         self.mainfolder = path_test#/work/home/ac877eihwp/renyq/xxx/test/
         self.opt = path_test+'opt/'
-        self.neb = path_test+'pre/'
+        self.neb = path_test+'reactions/'
         self.file = {}
         self.slab = read(f'{path_test}opt/slab/Ru_hcp0001.vasp')
+        self.INAME = I
     def site_finder(self):
             slab = self.slab
             finder = SurfaceSiteFinder(slab)
@@ -512,7 +513,6 @@ class PREforSearchTS():
         self.foldername_json =f'{self.opt}system/folder_name.json'
         folder_dict=read_json(self.foldername_json)
         count_file = 0
-        
         for file in folder_dict:
             mf = molfile(file,self.mainfolder)
             mf.check_site(self.site)
@@ -525,9 +525,13 @@ class PREforSearchTS():
         else:pass
         print('Finish reading data from opt')              
     def buildmodel(self,reaction_txt,MLPs_model_path='prototypeModel.pth'):
+        if self.INAME == None:
+            INAME = 'foldername.json'
+        else:
+            INAME = self.INAME
         mainfolder = self.neb
         os.makedirs(mainfolder, exist_ok=True)  # exist_ok=True 避免目录已存在时报错
-        with open(f'{mainfolder}foldername.json', 'w') as file:
+        with open(f'{mainfolder}{INAME}', 'w') as file:
             pass
         if type(reaction_txt) == str:
             reaction_list = read_file_line_by_line(reaction_txt)
@@ -542,27 +546,28 @@ class PREforSearchTS():
             os.makedirs(subfolder, exist_ok=True)
             if initial_mol.model_p == None or final_mol.model_p == None:
                 data = {f'{rlist[0][0]}_{rlist[-1][0]}':
-                        {rlist[0][0]:initial_mol.site_dict_data,rlist[-1][0]:final_mol.site_dict_data}
+                        {rlist[0][0]:initial_mol.model_p,rlist[-1][0]:final_mol.model_p}
                         }#File name ：[Reaction,atom bond changed,idx,idx,bonded smiles,broken smiles]
-                with open(f'{mainfolder}foldername.json', 'r') as f:
+                with open(f'{mainfolder}{INAME}', 'r') as f:
                     file = f.read()
                     if len(file)>0:
                         ne = 'ne'
                     else:
                         ne = 'e'
                 if ne == 'ne':
-                    with open (f'{mainfolder}foldername.json','r') as f:
+                    with open (f'{mainfolder}{INAME}','r') as f:
                         old_data = json.load(f)
                 else:
                     old_data ={}
                 old_data.update(data)
-                with open(f'{mainfolder}foldername.json', 'w') as f:
+                with open(f'{mainfolder}{INAME}', 'w') as f:
                         json.dump(old_data,f,indent=2)
                 print(f'IS:{initial_mol.model_p};FS:{final_mol.model_p}')
             else:
                 RR = rR.readreaction(initial_mol.model_p,final_mol.model_p,reaction,MLPs_model_path)
                 RR.readfile()
                 RR.run_MDAO(subfolder)
+                RR.check_result()
                 check_atoms = RR.OUT2
                 check_atomsNN = rR.NN_system()
                 check_atomsNN.RunCheckNN_FindSite(check_atoms,self.site)
@@ -574,56 +579,40 @@ class PREforSearchTS():
                 code = int(f'1{site_count["top"]}2{site_count["bridge"]}3{site_count.get("3th_multifold",0)}')
                 if RR.stop == False:
                     subfolder = f'{mainfolder}{rlist[0][0]}_{rlist[-1][0]}/'
-                    data = {f'{rlist[0][0]}_{rlist[-1][0]}':[{rlist[0][0]:initial_mol.site_dict_data,rlist[-1][0]:final_mol.site_dict_data},code,[reaction,RR.changebondatom,RR.group1,RR.group2,RR.check,RR.split]]}#File name ：[Reaction,atom bond changed,idx,idx,bonded smiles,broken smiles]
-                    with open(f'{mainfolder}foldername.json', 'r') as f:
+                    data = {f'{rlist[0][0]}_{rlist[-1][0]}':[{rlist[0][0]:initial_mol.site_dict_data,rlist[-1][0]:final_mol.site_dict_data},code,RR.check_result_out,[reaction,RR.changebondatom,RR.group1,RR.group2,RR.check,RR.split]]}#File name ：[Reaction,atom bond changed,idx,idx,bonded smiles,broken smiles]
+                    with open(f'{mainfolder}{INAME}', 'r') as f:
                         file = f.read()
                         if len(file)>0:
                             ne = 'ne'
                         else:
                             ne = 'e'
                     if ne == 'ne':
-                        with open (f'{mainfolder}foldername.json','r') as f:
+                        with open (f'{mainfolder}{INAME}','r') as f:
                             old_data = json.load(f)
                     else:
                         old_data ={}
                     old_data.update(data)
-                    with open(f'{mainfolder}foldername.json', 'w') as f:
+                    with open(f'{mainfolder}{INAME}', 'w') as f:
                         json.dump(old_data,f,indent=2)
                     RR.save(subfolder,'POSCAR')
                     print(f'Reaction Done')
                 else:
                     print(f'The Reaction is WRONG:RR.stop=True')
                     data = {f'{rlist[0][0]}_{rlist[-1][0]}':'the Reaction is WRONG:RR.stop=True'}#File name ：[Reaction,atom bond changed,idx,idx,bonded smiles,broken smiles]
-                    with open(f'{mainfolder}foldername.json', 'r') as f:
+                    with open(f'{mainfolder}{INAME}', 'r') as f:
                         file = f.read()
                         if len(file)>0:
                             ne = 'ne'
                         else:
                             ne = 'e'
                     if ne == 'ne':
-                        with open (f'{mainfolder}foldername.json','r') as f:
+                        with open (f'{mainfolder}{INAME}','r') as f:
                             old_data = json.load(f)
                     else:
                         old_data ={}
                     old_data.update(data)
-                    with open(f'{mainfolder}foldername.json', 'w') as f:
+                    with open(f'{mainfolder}{INAME}', 'w') as f:
                         json.dump(old_data,f,indent=2)
-        '''with open(f'{mainfolder}foldername.json', 'r') as f:
-            self.d = json.load(f) '''              
-    '''def start_split(self,batch):
-        fd = self.d
-        floderlist = list(fd.keys())
-        n=len(floderlist)
-        r=n%batch
-        klow=int(n/batch)
-        split = [klow+1 for _ in range(r)] + [klow for _ in range(10-r)]
-        foldersplit=[]
-        for i in split:
-            il=floderlist[0:i]
-            del floderlist[:i]
-            foldersplit.append(il)
-        self.fsp = foldersplit
-        return foldersplit'''
 
 
 

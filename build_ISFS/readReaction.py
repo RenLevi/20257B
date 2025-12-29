@@ -358,12 +358,12 @@ class NN_system():
         bms.build()
         self.cb = cb 
         self.bms = bms
-        self.ads = cb.adsorption
+        self.ads = cb.adsorptAtom
         atoms = cb.poscar
         self.atoms = atoms
         indices_to_mol = [atom.index for atom in atoms if atom.symbol != 'Ru']
         self.only_mol = atoms[indices_to_mol]
-        self.ads_data = find_site(cb.poscar,cb.adsorption,finder)
+        self.ads_data = find_site(cb.poscar,cb.adsorptAtom,finder)
         #print(self.ads_data)
         return self
 def check_NON_metal_atoms(atom):
@@ -706,7 +706,6 @@ def adjust_distance(CB,
                     delta=0,
                     alpha=0,
                     noads=False,
-                    optimizer = None
                     ):
     """
     调整两个原子之间的距离
@@ -733,30 +732,27 @@ def adjust_distance(CB,
     p1,p2,main,sub = update_positions(atoms,move,notmove,nmGidx,mGidx)
     p21=p2-p1
     p21xy = np.array([p21[0],p21[1],0])
+    if np.linalg.norm(p21xy) <=0.01:
+        p21xy = np.array([1,0,0])
     rotate_points,_ = rotate_point_set(sub.positions,p21,p21xy,center=p1)
     sub.positions = rotate_points
-    v_shift = p21xy/np.linalg.norm(p21xy)*new_distance - p21xy
+    atoms.positions[mGidx]=sub.positions
+    p1,p2,main,sub = update_positions(atoms,move,notmove,nmGidx,mGidx)
+    p21=p2-p1
+    v_shift = p21/np.linalg.norm(p21)*new_distance - p21
     sub.translate(v_shift)
-    p2_r = p1+p21xy/np.linalg.norm(p21xy)*new_distance
-    rotate_points,_ = rotate_point_set(sub.positions,p21xy,np.array([0,0,1]),center=p2_r)
+    rotate_points,_ = rotate_point_set(sub.positions,p21,np.array([0,0,1]),center=p2+v_shift)
+    sub.positions = rotate_points
     atoms.positions[mGidx]=sub.positions
     pos1,pos2,main,sub = update_positions(atoms,move,notmove,nmGidx,mGidx)
-    _,best_sub,_ = rotate_mol_find_best_distance(sub,main,step_degree=30,opt = 'max',center=pos1,rotate_axis=np.array([0, 0, 1]))
-    _,rotate_best_sub,_ = rotate_mol_find_best_distance(best_sub,main,step_degree=30,opt = 'max',center=pos2,rotate_axis=np.array([0, 0, 1]))
+    print(np.linalg.norm(pos2 - pos1))
+    _,rotate_best_sub,_ = rotate_mol_find_best_distance(sub,main,step_degree=30,opt = 'max',center=pos1,rotate_axis=np.array([0, 0, 1]))
     atoms.positions[mGidx]=rotate_best_sub.positions
-
     pos1,pos2,main,sub = update_positions(atoms,move,notmove,nmGidx,mGidx)
-    '''calc =  NequIPCalculator.from_deployed_model(optimizer, device='cpu')
-    
-    
-    if len(main) != 1:
-        main.calc = calc
-        bfgs_main = BFGS(main,trajectory=None,logfile=None)
-        bfgs_main.run(fmax=0.05,steps=100)
-    if len(sub) != 1:
-        sub.calc = calc
-        bfgs_sub = BFGS(sub,trajectory=None,logfile=None)
-        bfgs_sub.run(fmax=0.05,steps=100)'''
+    _,rotate_best_sub,_ = rotate_mol_find_best_distance(rotate_best_sub,main,step_degree=30,opt = 'max',center=pos2,rotate_axis=np.array([0, 0, 1]))
+    atoms.positions[mGidx]=rotate_best_sub.positions
+    pos1,pos2,main,sub = update_positions(atoms,move,notmove,nmGidx,mGidx)
+    print(np.linalg.norm(pos2 - pos1))
     atoms.positions[nmGidx]=main.positions
     atoms.positions[mGidx]=sub.positions
     atoms.translate(np.array([0,0,alpha+delta]))
@@ -832,13 +828,10 @@ class MultiDistanceAwareOptimizer(BFGS):
                     direction = positions[j] - positions[i]
                     direction_unit = direction / np.linalg.norm(direction)
                     current_force = np.linalg.norm(forces[i] - forces[j])
-                    extra_force = 5 * current_force * (distance - limit_dist)
+                    extra_force = 5*self.force_scale * current_force * (distance - limit_dist)
                     forces[i] += extra_force * direction_unit
                     forces[j] -= extra_force * direction_unit
-                    print(f"mode {mode}:调整意外靠近原子对 ({i},{j}) 受力，距离: {distance:.4f} Å")
-    def check_H_ads_to_broken(self,forces):
-        indices_to_check = [atom.index for atom in self.atoms if atom.symbol == 'H']
-        
+                    print(f"mode {mode}:调整意外靠近原子对 ({i},{j}) 受力，距离: {distance:.4f} Å") 
         return forces
     def step(self, forces=None):
         if forces is None:
@@ -859,28 +852,19 @@ class readreaction():
         self.changebondatom = None
         self.stop = False
         self.mlps = MPLS
+        self.OUT1=None
+        self.OUT2=None
     def readfile(self):
         def warp(id1,id2,cb):
-            id1s = spilt_group(id1,id2,cb)
-            id2s = spilt_group(id2,id1,cb)
             atoms = cb.poscar
-            id1mol = atoms[id1s]
-            id2mol = atoms[id2s]
-            mass1 = sum(id1mol.get_masses())
-            mass2 = sum(id2mol.get_masses())
             p1 = atoms.positions[id1]
             p2 = atoms.positions[id2]
             z1=p1[-1]
             z2=p2[-1]
-            if len(id1s) >1 or len(id2s) >1:
-                if mass1 >= mass2:
-                    return id1,id2
-                else:return id2,id1
+            if z1 <= z2:
+                return id1,id2
             else:
-                if z1 <= z2:
-                    return id1,id2
-                else:
-                    return id2,id1
+                return id2,id1
         CB1 = checkBonds()
         CB1.input(self.mol1)
         CB1.AddAtoms()
@@ -923,10 +907,10 @@ class readreaction():
             self.group1 = notmoveGroupIdx#main body
             self.group2 = moveGroupIdx#sub body
             self.changebondatom = (notmove,move)#(Bid_infile,Eid_infile)
-            newmol = adjust_distance(CB,notmove,notmoveGroupIdx,move,moveGroupIdx,alpha=0,noads=noads,optimizer=self.mlps)
+            newmol = adjust_distance(CB,notmove,notmoveGroupIdx,move,moveGroupIdx,alpha=0,noads=noads)
             if check_molecule_over_surface(newmol) == False:
                     for i in range(1,20):
-                        newmol = adjust_distance(CB,notmove,notmoveGroupIdx,move,moveGroupIdx,alpha=0.5,delta=0.1*i,noads=noads,optimizer=self.mlps)
+                        newmol = adjust_distance(CB,notmove,notmoveGroupIdx,move,moveGroupIdx,alpha=0,delta=0.1*i,noads=noads)
                         if check_molecule_over_surface(newmol) == True:
                             print(f'通过提升分子位置，避免了分子穿透表面')
                             break
@@ -946,7 +930,13 @@ class readreaction():
             for j in range(len(twogroups)):
                 if i == j:pass
                 else:
-                    if check_NON_metal_atoms(twogroups[i]) == False or check_NON_metal_atoms(twogroups[j])==False:pass
+                    if check_NON_metal_atoms(twogroups[i]) == False or check_NON_metal_atoms(twogroups[j])==False:
+                        RuH = ['Ru','H']
+                        if twogroups[i].symbol in RuH and twogroups[j].symbol in RuH and twogroups[i].symbol != twogroups[j].symbol:
+                            limit_distance = covalent_radii[twogroups.get_atomic_numbers()[i]]+covalent_radii[twogroups.get_atomic_numbers()[j]]
+                            distance_constraints.append((i, j, limit_distance+0.5, -1))
+                        else:
+                            pass
                     else:
                         if changebondatom in [(i,j),(j,i)]:
                             limit_distance = covalent_radii[twogroups.get_atomic_numbers()[i]]+covalent_radii[twogroups.get_atomic_numbers()[j]+1]
@@ -956,7 +946,10 @@ class readreaction():
                             if (i,j) in bondsetlist or (j,i) in bondsetlist:
                                 distance_constraints.append((i, j, limit_distance, 0))
                             else:
-                                distance_constraints.append((i, j, limit_distance, -1))
+                                pass
+                                #distance_constraints.append((i, j, limit_distance, -1))
+
+        self.distance_constraints = distance_constraints
         opt = MultiDistanceAwareOptimizer(
                                         atoms=twogroups,
                                         distance_constraints=distance_constraints,
@@ -966,23 +959,36 @@ class readreaction():
                                         )
     
         # 运行优化
-        print("\n开始MDAO...")
-        opt.run(fmax=0.05, steps=200)
+        print("\n开始MDAO优化...")
+        opt.run(fmax=0.05, steps=500)
         opt.step()
-        print('\nMDAO结束')
-        print('\n开始FIRE优化...')
-        fire = FIRE(twogroups, logfile=f'{path}FIRE.log', trajectory=f'{path}FIRE.traj')
-        fire.run(fmax=0.01)
-
+        print(f'\nMDAO结束:{bool(opt)}')
+        print('\n开始BFGS优化...')
+        bfgs = BFGS(twogroups, logfile=f'{path}FIRE.log', trajectory=f'{path}FIRE.traj')
+        bfgs.run(fmax=0.01,steps=1000)
+        print(f'\nBFGS结束:{bool(bfgs)}')
+        self.OUT2 = twogroups
+    def check_result(self):
+        twogroups=self.OUT2
         ccb = checkBonds()
         ccb.poscar = twogroups
         ccb.AddAtoms()
         ccb.CheckAllBonds()
         cbms = BuildMol2Smiles(ccb)
         cbms.build()
-        print(f'\n优化后分子SMILES:{cbms.smiles},check:{self.split}')
-
-        self.OUT2 = twogroups
+        ADS = cbms.ads
+        G1ID = self.group1
+        G2ID = self.group2
+        g1ads = 0
+        g2ads = 0
+        for ad in ADS:
+            adid = ad.id
+            if adid in G1ID:
+                g1ads +=1
+            elif adid in G2ID:
+                g2ads +=1
+        print(f'\n优化后分子SMILES:{cbms.smiles},check:{self.split},output:{[bool(cbms.smiles == self.split),bool(g1ads==0),bool(g2ads==0)]}')
+        self.check_result_out = [cbms.smiles == self.split, g1ads==0, g2ads==0]
     def save(self,path,format):
         reactiontype = self.r[1][0]
         if reactiontype == 'Add':
@@ -997,7 +1003,6 @@ class readreaction():
                 write(path+'IS.vasp', self.IS, format='vasp', vasp5=True)  # vasp5=True添加元素名称
                 write(path+'FS.vasp', self.FS, format='vasp', vasp5=True)  # vasp5=True添加元素名称
                 write(path+'beforeMDAO.vasp', self.beforeMDAO, format='vasp', vasp5=True)  # vasp5=True添加元素名称
-
         else:
             print('format should be .vasp')
 
