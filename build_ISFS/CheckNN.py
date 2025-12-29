@@ -57,6 +57,7 @@ class checkBonds():
         for i in range(len(neighbors_idx_list)):
             ith_atom = self.atoms[i]
             if check_NON_metal_atoms(ith_atom) == True:
+                tmp = []
                 for j in neighbors_idx_list[i]:
                     jth_atom = self.atoms[j]
                     if check_NON_metal_atoms(jth_atom)==True:
@@ -67,7 +68,9 @@ class checkBonds():
                             self.bondsetlist.append((ith_atom.id,jth_atom.id))
                     else:
                         #print(f'there is adsorption with {ith_atom.elesymbol}:{i} and {jth_atom.elesymbol}:{j}.')
-                        self.adsorptAtom.append(ith_atom)
+                        if ith_atom.id not in tmp:
+                            tmp.append(ith_atom.id)
+                            self.adsorptAtom.append(ith_atom)
                         self.adsorption.append(jth_atom)
             else:pass
 class BuildMol2Smiles():

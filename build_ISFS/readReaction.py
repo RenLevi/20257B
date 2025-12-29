@@ -745,14 +745,12 @@ def adjust_distance(CB,
     sub.positions = rotate_points
     atoms.positions[mGidx]=sub.positions
     pos1,pos2,main,sub = update_positions(atoms,move,notmove,nmGidx,mGidx)
-    print(np.linalg.norm(pos2 - pos1))
     _,rotate_best_sub,_ = rotate_mol_find_best_distance(sub,main,step_degree=30,opt = 'max',center=pos1,rotate_axis=np.array([0, 0, 1]))
     atoms.positions[mGidx]=rotate_best_sub.positions
     pos1,pos2,main,sub = update_positions(atoms,move,notmove,nmGidx,mGidx)
     _,rotate_best_sub,_ = rotate_mol_find_best_distance(rotate_best_sub,main,step_degree=30,opt = 'max',center=pos2,rotate_axis=np.array([0, 0, 1]))
     atoms.positions[mGidx]=rotate_best_sub.positions
     pos1,pos2,main,sub = update_positions(atoms,move,notmove,nmGidx,mGidx)
-    print(np.linalg.norm(pos2 - pos1))
     atoms.positions[nmGidx]=main.positions
     atoms.positions[mGidx]=sub.positions
     atoms.translate(np.array([0,0,alpha+delta]))
@@ -813,7 +811,7 @@ class MultiDistanceAwareOptimizer(BFGS):
                     
                     forces[i] += extra_force * direction_unit
                     forces[j] -= extra_force * direction_unit
-                    print(f"mode {mode}:调整原子对 ({i},{j}) 受力，距离: {distance:.4f} Å")
+                    #print(f"mode {mode}:调整原子对 ({i},{j}) 受力，距离: {distance:.4f} Å")
             elif mode == 1:
                 if distance < limit_dist:
                     direction = positions[j] - positions[i]
@@ -822,7 +820,7 @@ class MultiDistanceAwareOptimizer(BFGS):
                     extra_force = self.force_scale * current_force * (distance - limit_dist)
                     forces[i] += extra_force * direction_unit
                     forces[j] -= extra_force * direction_unit
-                    print(f"mode {mode}:调整原子对 ({i},{j}) 受力，距离: {distance:.4f} Å")
+                    #print(f"mode {mode}:调整原子对 ({i},{j}) 受力，距离: {distance:.4f} Å")
             elif mode == -1:
                 if distance <= limit_dist:
                     direction = positions[j] - positions[i]
@@ -831,7 +829,7 @@ class MultiDistanceAwareOptimizer(BFGS):
                     extra_force = 5*self.force_scale * current_force * (distance - limit_dist)
                     forces[i] += extra_force * direction_unit
                     forces[j] -= extra_force * direction_unit
-                    print(f"mode {mode}:调整意外靠近原子对 ({i},{j}) 受力，距离: {distance:.4f} Å") 
+                    #print(f"mode {mode}:调整意外靠近原子对 ({i},{j}) 受力，距离: {distance:.4f} Å") 
         return forces
     def step(self, forces=None):
         if forces is None:
@@ -964,10 +962,11 @@ class readreaction():
         opt.step()
         print(f'\nMDAO结束:{bool(opt)}')
         print('\n开始BFGS优化...')
-        bfgs = BFGS(twogroups, logfile=f'{path}FIRE.log', trajectory=f'{path}FIRE.traj')
+        bfgs = BFGS(twogroups, logfile=f'{path}BFGS.log', trajectory=f'{path}BFGS.traj')
         bfgs.run(fmax=0.01,steps=1000)
         print(f'\nBFGS结束:{bool(bfgs)}')
         self.OUT2 = twogroups
+        self.opt_check = (bool(opt),bool(bfgs))
     def check_result(self):
         twogroups=self.OUT2
         ccb = checkBonds()
@@ -987,8 +986,8 @@ class readreaction():
                 g1ads +=1
             elif adid in G2ID:
                 g2ads +=1
-        print(f'\n优化后分子SMILES:{cbms.smiles},check:{self.split},output:{[bool(cbms.smiles == self.split),bool(g1ads==0),bool(g2ads==0)]}')
-        self.check_result_out = [cbms.smiles == self.split, g1ads==0, g2ads==0]
+        print(f'\n优化后分子SMILES:{cbms.smiles},check:{self.split},output:{[bool(cbms.smiles == self.split),bool(g1ads!=0),bool(g2ads!=0)]}')
+        self.check_result_out = [cbms.smiles == self.split, g1ads!=0, g2ads!=0]
     def save(self,path,format):
         reactiontype = self.r[1][0]
         if reactiontype == 'Add':

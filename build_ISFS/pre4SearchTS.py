@@ -579,7 +579,16 @@ class PREforSearchTS():
                 code = int(f'1{site_count["top"]}2{site_count["bridge"]}3{site_count.get("3th_multifold",0)}')
                 if RR.stop == False:
                     subfolder = f'{mainfolder}{rlist[0][0]}_{rlist[-1][0]}/'
-                    data = {f'{rlist[0][0]}_{rlist[-1][0]}':[{rlist[0][0]:initial_mol.site_dict_data,rlist[-1][0]:final_mol.site_dict_data},code,RR.check_result_out,[reaction,RR.changebondatom,RR.group1,RR.group2,RR.check,RR.split]]}#File name ：[Reaction,atom bond changed,idx,idx,bonded smiles,broken smiles]
+                    data = {
+                    f'{rlist[0][0]}_{rlist[-1][0]}':#key
+                        {
+                        'opt speciesads':{rlist[0][0]:initial_mol.site_dict_data,rlist[-1][0]:final_mol.site_dict_data},
+                        'twogroups ads':code,
+                        'MDAO & BFGS OPT fmax result':RR.opt_check,
+                        'final ads':RR.check_result_out,
+                        'info list':[reaction,RR.changebondatom,RR.group1,RR.group2,RR.check,RR.split]
+                        }#File name ：[Reaction,atom bond changed,idx,idx,bonded smiles,broken smiles]
+                    }   
                     with open(f'{mainfolder}{INAME}', 'r') as f:
                         file = f.read()
                         if len(file)>0:
