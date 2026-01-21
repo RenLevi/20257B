@@ -531,7 +531,7 @@ class PREforSearchTS():
             INAME = self.INAME
         mainfolder = self.neb
         os.makedirs(mainfolder, exist_ok=True)  # exist_ok=True 避免目录已存在时报错
-        with open(f'{mainfolder}{INAME}', 'w') as file:
+        with open(f'{mainfolder}{INAME}.json', 'w') as file:
             pass
         if type(reaction_txt) == str:
             reaction_list = read_file_line_by_line(reaction_txt)
@@ -548,19 +548,19 @@ class PREforSearchTS():
                 data = {f'{rlist[0][0]}_{rlist[-1][0]}':
                         {rlist[0][0]:initial_mol.model_p,rlist[-1][0]:final_mol.model_p}
                         }#File name ：[Reaction,atom bond changed,idx,idx,bonded smiles,broken smiles]
-                with open(f'{mainfolder}{INAME}', 'r') as f:
+                with open(f'{mainfolder}{INAME}.json', 'r') as f:
                     file = f.read()
                     if len(file)>0:
                         ne = 'ne'
                     else:
                         ne = 'e'
                 if ne == 'ne':
-                    with open (f'{mainfolder}{INAME}','r') as f:
+                    with open (f'{mainfolder}{INAME}.json','r') as f:
                         old_data = json.load(f)
                 else:
                     old_data ={}
                 old_data.update(data)
-                with open(f'{mainfolder}{INAME}', 'w') as f:
+                with open(f'{mainfolder}{INAME}.json', 'w') as f:
                         json.dump(old_data,f,indent=2)
                 print(f'IS:{initial_mol.model_p};FS:{final_mol.model_p}')
             else:
@@ -589,38 +589,38 @@ class PREforSearchTS():
                         'info list':[reaction,RR.changebondatom,RR.group1,RR.group2,RR.check,RR.split]
                         }#File name ：[Reaction,atom bond changed,idx,idx,bonded smiles,broken smiles]
                     }   
-                    with open(f'{mainfolder}{INAME}', 'r') as f:
+                    with open(f'{mainfolder}{INAME}.json', 'r') as f:
                         file = f.read()
                         if len(file)>0:
                             ne = 'ne'
                         else:
                             ne = 'e'
                     if ne == 'ne':
-                        with open (f'{mainfolder}{INAME}','r') as f:
+                        with open (f'{mainfolder}{INAME}.json','r') as f:
                             old_data = json.load(f)
                     else:
                         old_data ={}
                     old_data.update(data)
-                    with open(f'{mainfolder}{INAME}', 'w') as f:
+                    with open(f'{mainfolder}{INAME}.json', 'w') as f:
                         json.dump(old_data,f,indent=2)
                     RR.save(subfolder,'POSCAR')
                     print(f'Reaction Done')
                 else:
                     print(f'The Reaction is WRONG:RR.stop=True')
                     data = {f'{rlist[0][0]}_{rlist[-1][0]}':'the Reaction is WRONG:RR.stop=True'}#File name ：[Reaction,atom bond changed,idx,idx,bonded smiles,broken smiles]
-                    with open(f'{mainfolder}{INAME}', 'r') as f:
+                    with open(f'{mainfolder}{INAME}.json', 'r') as f:
                         file = f.read()
                         if len(file)>0:
                             ne = 'ne'
                         else:
                             ne = 'e'
                     if ne == 'ne':
-                        with open (f'{mainfolder}{INAME}','r') as f:
+                        with open (f'{mainfolder}{INAME}.json','r') as f:
                             old_data = json.load(f)
                     else:
                         old_data ={}
                     old_data.update(data)
-                    with open(f'{mainfolder}{INAME}', 'w') as f:
+                    with open(f'{mainfolder}{INAME}.json', 'w') as f:
                         json.dump(old_data,f,indent=2)
 
 
