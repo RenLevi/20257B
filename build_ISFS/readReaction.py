@@ -565,7 +565,7 @@ def checkbond(reaction:list,bms1,bms2):
         print(f'部分原子位于催化剂表面以下')
         return False
     else:    return True'''
-def check_molecule_above_surface(atoms,threshold=1.0):
+def check_molecule_above_surface(atoms,threshold=0.5):
     molindice =[atom.index for atom in atoms if atom.symbol in ['C','H','O']]
     metalindice =[atom.index for atom in atoms if atom.symbol not in ['C','H','O']]
     points = atoms.positions[metalindice]
@@ -967,7 +967,7 @@ class MultiDistanceAwareOptimizer(BFGS):
                     forces[i] += extra_force * direction_unit
                     forces[j] -= extra_force * direction_unit
                     #print(f"mode {mode}:调整原子对 ({i},{j}) 受力，距离: {distance:.4f} < {limit_dist:.4f} Å")
-            elif mode == -1:
+            '''elif mode == -1:
                 if distance <= limit_dist:
                     direction = vector
                     direction_unit = direction / np.linalg.norm(direction)
@@ -975,7 +975,7 @@ class MultiDistanceAwareOptimizer(BFGS):
                     extra_force = 5*self.force_scale * current_force * (distance - limit_dist)
                     forces[i] += extra_force * direction_unit
                     forces[j] -= extra_force * direction_unit
-                    #print(f"mode {mode}:调整原子对 ({i},{j}) 受力，距离: {distance:.4f} <={limit_dist:.4f} Å")
+                    #print(f"mode {mode}:调整原子对 ({i},{j}) 受力，距离: {distance:.4f} <={limit_dist:.4f} Å")'''
         return forces
     
     def step(self, forces=None):
@@ -1129,20 +1129,21 @@ class readreaction():
                 else:
                     if check_NON_metal_atoms(twogroups[i]) == False or check_NON_metal_atoms(twogroups[j])==False:
                         RuH = ['Ru','H']
-                        '''if twogroups[i].symbol in RuH and twogroups[j].symbol in RuH and twogroups[i].symbol != twogroups[j].symbol:
+                        if twogroups[i].symbol in RuH and twogroups[j].symbol in RuH and twogroups[i].symbol != twogroups[j].symbol:
                             limit_distance = covalent_radii[twogroups.get_atomic_numbers()[i]]+covalent_radii[twogroups.get_atomic_numbers()[j]]+0.5
-                            distance_constraints.append((i, j, limit_distance, -1))'''
+                            distance_constraints.append((i, j, limit_distance, 1))
                     else:
                         if changebondatom in [(i,j),(j,i)]:
                             limit_distance = 3#covalent_radii[twogroups.get_atomic_numbers()[i]]+covalent_radii[twogroups.get_atomic_numbers()[j]+1]
                             if (i, j,limit_distance, 1) not in distance_constraints:
                                 distance_constraints.append((i, j,limit_distance, 1))
                         else:
-                            limit_distance = covalent_radii[twogroups.get_atomic_numbers()[i]]+covalent_radii[twogroups.get_atomic_numbers()[j]]+0.5
                             if (i,j) in bondsetlist or (j,i) in bondsetlist:
+                                limit_distance = covalent_radii[twogroups.get_atomic_numbers()[i]]+covalent_radii[twogroups.get_atomic_numbers()[j]]-0.5
                                 if (i, j, limit_distance, 0) not in distance_constraints:
                                     distance_constraints.append((i, j, limit_distance, 0))
                             else:
+                                limit_distance = covalent_radii[twogroups.get_atomic_numbers()[i]]+covalent_radii[twogroups.get_atomic_numbers()[j]]+0.5
                                 if (i, j, limit_distance, 1) not in distance_constraints:
                                     distance_constraints.append((i, j, limit_distance, 1))
 
@@ -1156,27 +1157,18 @@ class readreaction():
                                         )
     
         # 运行优化
-        print("\n开始MDAO优化...")
+        print("\n开始MDAO优化")
         opt.set_stop_condition(check_surface_or_bulk_changed)
-        mdao_fmax_bool=opt.run(fmax=0.05,steps=200)
+        mdao_fmax_bool=opt.run(fmax=0.05,steps=250)
         opt.step()
         print(f'\nMDAO结束:{mdao_fmax_bool}')
-        print('\n开始BFGS优化...')
+        print('\n开始BFGS优化')
         bfgs = BFGS(twogroups, logfile=f'{path}BFGS.log', trajectory=f'{path}BFGS.traj')
         bfgs_fmax_bool=bfgs.run(fmax=0.01,steps=1000)
         print(f'\nBFGS结束:{bfgs_fmax_bool}')
         self.OUT2 = twogroups
         self.opt_check = [bool(mdao_fmax_bool),bool(bfgs_fmax_bool)]
-    def check_result(self):
-        def warp(mol:Atoms,input):
-            atoms = copy.deepcopy(mol)
-            (a1,a1ids,a2,a2ids) = input
-            for atom in atoms:
-                if atom.index in a1ids:
-                    atom.position += np.array([0,0,a1])
-                if atom.index in a2ids:
-                    atom.position += np.array([0,0,a2])
-            return atoms
+    def check_result(self,path):
         if self.opt_check[-1]==True:
             twogroups=copy.deepcopy(self.OUT2)
             ccb = checkBonds()
@@ -1196,68 +1188,37 @@ class readreaction():
                     g1ads +=1
                 elif adid in G2ID:
                     g2ads +=1
-            print(f'\n第0次优化后分子SMILES:{cbms.smiles},check:{self.split},output:{[bool(cbms.smiles == self.split),bool(g1ads!=0),bool(g2ads!=0)]}')
-            if g1ads == 0:
-                a1 = 1
-            else:
-                a1 = 0
-            if g2ads == 0:
-                a2 = 1
-            else:
-                a2 = 0
-            if cbms.smiles != self.split:
-                a1,a2 = 1,1
-        else:
-            a1,a2 = 1,1
-        if a1 != 0 or a2 != 0:
-            for i in range(1,10):
-                twogroups=copy.deepcopy(self.OUT2)
-                input = (-a1*i/10,G1ID,-a2*i/10,G2ID)
-                newgroups = warp(twogroups,input)
-                opt = MultiDistanceAwareOptimizer(
-                                            atoms=newgroups,
-                                            distance_constraints=self.distance_constraints,
-                                            force_scale=2,
-                                            logfile=f'{self.path2save}MDAO_{a1}{i}{a2}{i}.log',
-                                            trajectory=f'{self.path2save}MDAO_{a1}{i}{a2}{i}.traj'
-                                            )
-                print("\n开始MDAO优化...")
-                opt.set_stop_condition(check_surface_or_bulk_changed)
-                mdao_fmb=opt.run(fmax=0.05,steps=200)
-                opt.step()
-                print(f'\nMDAO结束:{mdao_fmb}')
-                print('\n开始BFGS优化...')
-                bfgs = BFGS(newgroups, logfile=f'{self.path2save}BFGS_{a1}{i}{a2}{i}.log', trajectory=f'{self.path2save}BFGS_{a1}{i}{a2}{i}.traj')
-                bfgs_fmb=bfgs.run(fmax=0.01,steps=1000)
-                print(f'\nBFGS结束:{bfgs_fmb}')
-
-                ccb = checkBonds()
-                ccb.poscar = newgroups
-                ccb.AddAtoms()
-                ccb.CheckAllBonds()
-                cbms = BuildMol2Smiles(ccb)
-                cbms.build()
-                ADS = cbms.ads
-                G1ID = self.group1
-                G2ID = self.group2
-                g1ads = 0
-                g2ads = 0
-                for ad in ADS:
-                    adid = ad.id
-                    if adid in G1ID:
-                        g1ads +=1
-                    elif adid in G2ID:
-                        g2ads +=1
-                print(f'\n{i}次优化后分子SMILES:{cbms.smiles},check:{self.split},output:{[bool(cbms.smiles == self.split),bool(g1ads!=0),bool(g2ads!=0)]}')
-                if [bool(cbms.smiles == self.split),bool(g1ads!=0),bool(g2ads!=0)] == [True,True,True] and bfgs_fmb ==True:
-                    self.OUT2 = newgroups
-                    self.opt_check=[bool(mdao_fmb),bool(bfgs_fmb)]
-                    self.check_result_out = [cbms.smiles == self.split, g1ads!=0, g2ads!=0]
-                    break 
-        else:
+            print(f'\n优化后分子SMILES:{cbms.smiles},check:{self.split},output:{[bool(cbms.smiles == self.split),bool(g1ads!=0),bool(g2ads!=0)]}')
             self.OUT2 = twogroups
-            self.opt_check=[bool(mdao_fmb),bool(bfgs_fmb)]
             self.check_result_out = [cbms.smiles == self.split, g1ads!=0, g2ads!=0]
+        else:
+            twogroups=copy.deepcopy(self.OUT2)
+            print('\n开始FIRE优化')
+            fire = FIRE(twogroups, logfile=f'{path}FIRE.log', trajectory=f'{path}FIRE.traj')
+            fire_fmax_bool=fire.run(fmax=0.01,steps=1000)
+            print(f'\nFIRE结束:{fire_fmax_bool}')
+            ccb = checkBonds()
+            ccb.poscar = twogroups
+            ccb.AddAtoms()
+            ccb.CheckAllBonds()
+            cbms = BuildMol2Smiles(ccb)
+            cbms.build()
+            ADS = cbms.ads
+            G1ID = self.group1
+            G2ID = self.group2
+            g1ads = 0
+            g2ads = 0
+            for ad in ADS:
+                adid = ad.id
+                if adid in G1ID:
+                    g1ads +=1
+                elif adid in G2ID:
+                    g2ads +=1
+            print(f'\n优化后分子SMILES:{cbms.smiles},check:{self.split},output:{[bool(cbms.smiles == self.split),bool(g1ads!=0),bool(g2ads!=0)]}')
+            self.opt_check.append(bool(fire_fmax_bool))
+            self.OUT2 = twogroups
+            self.check_result_out = [cbms.smiles == self.split, g1ads!=0, g2ads!=0]
+
     def save(self,path,format):
         reactiontype = self.r[1][0]
         if reactiontype == 'Add':

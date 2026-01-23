@@ -526,7 +526,7 @@ class PREforSearchTS():
         print('Finish reading data from opt')              
     def buildmodel(self,reaction_txt,MLPs_model_path='prototypeModel.pth'):
         if self.INAME == None:
-            INAME = 'foldername.json'
+            INAME = 'foldername'
         else:
             INAME = self.INAME
         mainfolder = self.neb
