@@ -41,7 +41,7 @@ for batch in batch_process(fdl,11):
     sp.copyFiles('build_ISFS/preTS.py',f'test/jobsub/{reactions}/{i}')
     sp.copyFiles('build_ISFS/jobpreTS.sh',f'test/jobsub/{reactions}/{i}')
     sp.copyFolder('build_ISFS',f'test/jobsub/{reactions}/{i}/build_ISFS')
-    #sp.run_command_in_directory(directory=f'test/jobsub/{reactions}/{i}',command='qsub jobpreTS.sh')
+    sp.run_command_in_directory(directory=f'test/jobsub/{reactions}/{i}',command='qsub jobpreTS.sh')
     i += 1
 
 

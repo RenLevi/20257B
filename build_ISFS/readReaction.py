@@ -1189,7 +1189,6 @@ class readreaction():
                 elif adid in G2ID:
                     g2ads +=1
             print(f'\n优化后分子SMILES:{cbms.smiles},check:{self.split},output:{[bool(cbms.smiles == self.split),bool(g1ads!=0),bool(g2ads!=0)]}')
-            self.OUT2 = twogroups
             self.check_result_out = [cbms.smiles == self.split, g1ads!=0, g2ads!=0]
         else:
             twogroups=copy.deepcopy(self.OUT2)
