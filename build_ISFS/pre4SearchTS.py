@@ -586,7 +586,8 @@ class PREforSearchTS():
                         'twogroups ads':code,
                         'MDAO & BFGS OPT fmax result':RR.opt_check,
                         'final ads':RR.check_result_out,
-                        'info list':[reaction,RR.changebondatom,RR.group1,RR.group2,RR.check,RR.split]
+                        'info list':[reaction,RR.changebondatom,RR.group1,RR.group2,RR.check,RR.split],
+                        'boom':RR.boom
                         }#File name ：[Reaction,atom bond changed,idx,idx,bonded smiles,broken smiles]
                     }   
                     with open(f'{mainfolder}{INAME}.json', 'r') as f:

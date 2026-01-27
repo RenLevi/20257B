@@ -565,16 +565,72 @@ def checkbond(reaction:list,bms1,bms2):
         print(f'部分原子位于催化剂表面以下')
         return False
     else:    return True'''
-def check_molecule_above_surface(atoms,threshold=0.5):
-    molindice =[atom.index for atom in atoms if atom.symbol in ['C','H','O']]
-    metalindice =[atom.index for atom in atoms if atom.symbol not in ['C','H','O']]
-    points = atoms.positions[metalindice]
-    for id in molindice:
-        nearest_point, distance, _ = find_nearest_point_kdtree(points, atoms[id].position)
-        if distance <= threshold:
-            print(f'分子原子 {id} 位于催化剂表面以下或过近，距离为 {distance:.2f} Å')
-            return False
-    return True
+class CMAS():
+    def __init__(self, atoms: Atoms):
+        """
+        初始化表面位点查找器
+        
+        参数:
+        atoms: ASE Atoms 对象，表示平板结构
+        surface_direction: 表面法线方向 (0=x, 1=y, 2=z)
+        """
+        self.atoms = atoms
+        molindice =[atom.index for atom in atoms if atom.symbol in ['C','H','O']]
+        metalindice =[atom.index for atom in atoms if atom.symbol not in ['C','H','O']]
+        self.molindice = molindice
+        self.metalindice = metalindice
+        self.metal = atoms[metalindice]
+        self.cell = self.atoms.get_cell()
+        self.pbc = self.atoms.get_pbc()
+        self._generate_replicas()
+    def _generate_replicas(self):
+            """生成必要的镜像原子以处理周期性边界条件"""
+            # 确定每个方向需要复制的数量
+            # 对于最近邻搜索，通常只需要相邻的镜像
+            replicas = []
+            for i, pbc in enumerate(self.pbc):
+                if pbc:
+                    replicas.append([-2, -1, 0, 1, 2])
+                else:
+                    replicas.append([0])
+            
+            # 生成所有可能的复制组合
+            replica_offsets = np.array(np.meshgrid(*replicas)).T.reshape(-1, 3)
+            
+            # 存储所有位置（原始+镜像）
+            self.all_positions = []
+            self.original_indices = []  # 记录每个位置对应的原始原子索引
+            
+            # 原始原子位置#不含分子
+            original_positions = self.metal.get_positions()
+            for i, pos in enumerate(original_positions):
+                self.all_positions.append(pos)
+                self.original_indices.append(i)
+            # 镜像原子位置
+            for offset in replica_offsets:
+                # 跳过零偏移（原始位置）
+                if np.all(offset == 0):
+                    continue
+                # 应用周期性偏移
+                offset_positions = original_positions + offset @ self.cell
+                
+                for i, pos in enumerate(offset_positions):
+                    self.all_positions.append(pos)
+                    self.original_indices.append(i)
+            
+            self.all_positions = np.array(self.all_positions)
+            self.original_indices = np.array(self.original_indices)
+    def check_molecule_above_surface(self,threshold=1.0):
+        for id in self.molindice:
+            nearest_point, distance, _ = find_nearest_point_kdtree(self.all_positions, self.atoms[id].position)
+            if distance <= threshold:
+                print(f'分子原子 {id} 位于催化剂表面以下或过近，距离为 {distance:.2f} Å')
+                return False
+        return True
+def start_CMAS(atoms: Atoms):
+    cmas = CMAS(atoms)
+    check = cmas.check_molecule_above_surface()
+    return check
 def Euclidean_distance(R1:Atoms, R2:Atoms,bondids):
     """
     计算两组结构的欧氏距离
@@ -1104,12 +1160,14 @@ class readreaction():
             self.group2 = moveGroupIdx#sub body
             self.changebondatom = (notmove,move)#(Bid_infile,Eid_infile)
             newmol = adjust_distance(CB,notmove,notmoveGroupIdx,move,moveGroupIdx,alpha=0,noads=noads)
-            if check_molecule_above_surface(newmol) == False:
-                    for i in range(1,31):
-                        newmol = adjust_distance(CB,notmove,notmoveGroupIdx,move,moveGroupIdx,alpha=0,delta=0.1*i,noads=noads)
-                        if check_molecule_above_surface(newmol) == True:
-                            print(f'delta Z applied:{0.1*i} Å')
+            if start_CMAS(newmol) == False:
+                    for i in range(1,21):
+                        newmol = adjust_distance(CB,notmove,notmoveGroupIdx,move,moveGroupIdx,alpha=0,delta=0.2*i,noads=noads)
+                        if start_CMAS(newmol) == True:
+                            print(f'delta Z applied:{0.2*i} Å')
                             break
+            else:
+                pass
             self.OUT2 = newmol
             self.check =smilesFORcheck 
             self.split =smilesFORspilt
@@ -1126,12 +1184,12 @@ class readreaction():
         for i in range(len(twogroups)):
             for j in range(len(twogroups)):
                 if i >= j:pass
-                else:
+                else:#i:metal j:ads
                     if check_NON_metal_atoms(twogroups[i]) == False or check_NON_metal_atoms(twogroups[j])==False:
-                        RuH = ['Ru','H']
-                        if twogroups[i].symbol in RuH and twogroups[j].symbol in RuH and twogroups[i].symbol != twogroups[j].symbol:
-                            limit_distance = covalent_radii[twogroups.get_atomic_numbers()[i]]+covalent_radii[twogroups.get_atomic_numbers()[j]]+0.5
-                            distance_constraints.append((i, j, limit_distance, 1))
+                        if twogroups[j].symbol == 'H' and twogroups[i].symbol == 'Ru':
+                            if j not in changebondatom:
+                                limit_distance = covalent_radii[twogroups.get_atomic_numbers()[i]]+covalent_radii[twogroups.get_atomic_numbers()[j]]+0.5
+                                distance_constraints.append((i, j, limit_distance, 1))
                     else:
                         if changebondatom in [(i,j),(j,i)]:
                             limit_distance = 3#covalent_radii[twogroups.get_atomic_numbers()[i]]+covalent_radii[twogroups.get_atomic_numbers()[j]+1]
@@ -1159,6 +1217,7 @@ class readreaction():
         # 运行优化
         print("\n开始MDAO优化")
         opt.set_stop_condition(check_surface_or_bulk_changed)
+        self.boom = opt.sc
         mdao_fmax_bool=opt.run(fmax=0.05,steps=250)
         opt.step()
         print(f'\nMDAO结束:{mdao_fmax_bool}')
