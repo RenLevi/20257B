@@ -834,9 +834,10 @@ def adjust_distance(CB,
     _,rotate_best_sub,_ = rotate_mol_find_best_distance(sub,main,step_degree=30,opt = 'max',center=pos2,rotate_axis=np.array([0, 0, 1]))
     atoms.positions[mGidx]=rotate_best_sub.positions
     pos1,pos2,main,sub = update_positions(atoms,move,notmove,nmGidx,mGidx)
+    main.translate(np.array([0,0,alpha+delta]))
+    sub.translate(np.array([0,0,alpha+delta]))
     atoms.positions[nmGidx]=main.positions
     atoms.positions[mGidx]=sub.positions
-    atoms.translate(np.array([0,0,alpha+delta]))
     return atoms
 def check_neighbor(id,cb):
     idx = []
