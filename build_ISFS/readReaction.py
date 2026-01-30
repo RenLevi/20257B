@@ -1187,10 +1187,11 @@ class readreaction():
                 if i >= j:pass
                 else:#i:metal j:ads
                     if check_NON_metal_atoms(twogroups[i]) == False or check_NON_metal_atoms(twogroups[j])==False:
-                        if twogroups[j].symbol == 'H' and twogroups[i].symbol == 'Ru':
+                        '''if twogroups[j].symbol == 'H' and twogroups[i].symbol == 'Ru':
                             if j not in changebondatom:
                                 limit_distance = covalent_radii[twogroups.get_atomic_numbers()[i]]+covalent_radii[twogroups.get_atomic_numbers()[j]]+0.5
-                                distance_constraints.append((i, j, limit_distance, 1))
+                                distance_constraints.append((i, j, limit_distance, 1))'''
+                        pass
                     else:
                         if changebondatom in [(i,j),(j,i)]:
                             limit_distance = 3#covalent_radii[twogroups.get_atomic_numbers()[i]]+covalent_radii[twogroups.get_atomic_numbers()[j]+1]
@@ -1223,6 +1224,7 @@ class readreaction():
         opt.step()
         print(f'\nMDAO结束:{mdao_fmax_bool}')
         print('\n开始BFGS优化')
+        mdao_fmax_bool = False
         bfgs = BFGS(twogroups, logfile=f'{path}BFGS.log', trajectory=f'{path}BFGS.traj')
         bfgs_fmax_bool=bfgs.run(fmax=0.01,steps=1000)
         print(f'\nBFGS结束:{bfgs_fmax_bool}')
