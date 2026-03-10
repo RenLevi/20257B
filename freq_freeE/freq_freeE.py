@@ -16,13 +16,13 @@ def get_single_filename(folder_path):
         return "文件夹为空"
     else:
         return f"文件夹中有 {len(files)} 个文件，不止一个文件"
-model_path = '/work/home/ac877eihwp/renyq/LUNIX_all/mlp_opt/prototypeModel.pth'
-calculator = NequIPCalculator.from_deployed_model(model_path)
 with open('config.json','r') as j:
     data = json.load(j)
 path = data['path']
 folderpath=data['folderpath']
 INAME = data['INAME']
+model_path = data['MLPs_model_path']
+calc = NequIPCalculator.from_deployed_model(model_path, device='cpu')
 for name in folderpath:
     PathName = f'{path}/{name}'
     with open (f'{path}/{INAME}.json','r') as j:
@@ -30,7 +30,7 @@ for name in folderpath:
     rnd = dictrn[name]
     if rnd['TS searched'] == True:
         atoms = read(f'{PathName}/optimized_ts.xyz')
-        atoms.calc = calculator
+        atoms.calc = calc
         indices_to_fix = [atom.index for atom in atoms if atom.symbol == 'Ru']
         constraint = FixAtoms(indices=indices_to_fix)
         atoms.set_constraint(constraint)

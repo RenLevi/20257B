@@ -1,6 +1,22 @@
 import subprocess
 import os
 import shutil
+import json
+def json_r_w(name,data):
+    with open(name, 'r') as f:
+        file = f.read()
+        if len(file)>0:
+            ne = 'ne'
+        else:
+            ne = 'e'
+    if ne == 'ne':
+        with open (name,'r') as f:
+            old_data = json.load(f)
+    else:
+        old_data ={}
+    old_data.update(data)
+    with open(name, 'w') as f:
+        json.dump(old_data,f,indent=2)
 def run_command_in_directory(directory, command):
     """
     在指定目录下运行命令

@@ -566,7 +566,7 @@ class PREforSearchTS():
             else:
                 RR = rR.readreaction(initial_mol.model_p,final_mol.model_p,reaction,MLPs_model_path)
                 RR.readfile()
-                RR.run_MDAO(subfolder)
+                RR.run_MDAO_xsl(subfolder)
                 RR.check_result(subfolder)
                 check_atoms = RR.OUT2
                 check_atomsNN = rR.NN_system()

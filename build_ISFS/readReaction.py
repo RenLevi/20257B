@@ -1024,7 +1024,7 @@ class MultiDistanceAwareOptimizer(BFGS):
                     forces[i] += extra_force * direction_unit
                     forces[j] -= extra_force * direction_unit
                     #print(f"mode {mode}:调整原子对 ({i},{j}) 受力，距离: {distance:.4f} < {limit_dist:.4f} Å")
-            '''elif mode == -1:
+            elif mode == 2:#强烈排斥
                 if distance <= limit_dist:
                     direction = vector
                     direction_unit = direction / np.linalg.norm(direction)
@@ -1187,11 +1187,10 @@ class readreaction():
                 if i >= j:pass
                 else:#i:metal j:ads
                     if check_NON_metal_atoms(twogroups[i]) == False or check_NON_metal_atoms(twogroups[j])==False:
-                        '''if twogroups[j].symbol == 'H' and twogroups[i].symbol == 'Ru':
+                        if twogroups[j].symbol == 'H' and twogroups[i].symbol == 'Ru':
                             if j not in changebondatom:
                                 limit_distance = covalent_radii[twogroups.get_atomic_numbers()[i]]+covalent_radii[twogroups.get_atomic_numbers()[j]]+0.5
-                                distance_constraints.append((i, j, limit_distance, 1))'''
-                        pass
+                                distance_constraints.append((i, j, limit_distance, 1))
                     else:
                         if changebondatom in [(i,j),(j,i)]:
                             limit_distance = 3#covalent_radii[twogroups.get_atomic_numbers()[i]]+covalent_radii[twogroups.get_atomic_numbers()[j]+1]
@@ -1224,12 +1223,68 @@ class readreaction():
         opt.step()
         print(f'\nMDAO结束:{mdao_fmax_bool}')
         print('\n开始BFGS优化')
-        mdao_fmax_bool = False
         bfgs = BFGS(twogroups, logfile=f'{path}BFGS.log', trajectory=f'{path}BFGS.traj')
-        bfgs_fmax_bool=bfgs.run(fmax=0.01,steps=1000)
+        bfgs_fmax_bool=bfgs.run(fmax=0.01,steps=500)
         print(f'\nBFGS结束:{bfgs_fmax_bool}')
         self.OUT2 = twogroups
         self.opt_check = [bool(mdao_fmax_bool),bool(bfgs_fmax_bool)]
+    def run_MDAO_xsl(self,path):
+        self.path2save = path
+        calc = NequIPCalculator.from_deployed_model(self.mlps, device='cpu')
+        twogroups=self.OUT2
+        self.beforeMDAO = twogroups.copy()
+        twogroups.calc = calc
+        distance_constraints = []
+        CB = self.molINFO[0]
+        bondsetlist = CB.bondsetlist
+        changebondatom = self.changebondatom
+        for i in range(len(twogroups)):
+            for j in range(len(twogroups)):
+                if i >= j:pass
+                else:#i:metal j:ads
+                    if check_NON_metal_atoms(twogroups[i]) == False or check_NON_metal_atoms(twogroups[j])==False:
+                        if twogroups[j].symbol == 'H' and twogroups[i].symbol == 'Ru':
+                            if j not in changebondatom:
+                                limit_distance = covalent_radii[twogroups.get_atomic_numbers()[i]]+covalent_radii[twogroups.get_atomic_numbers()[j]]+0.5
+                                distance_constraints.append((i, j, limit_distance, 2))
+                    else:
+                        if changebondatom in [(i,j),(j,i)]:
+                            limit_distance = 3#covalent_radii[twogroups.get_atomic_numbers()[i]]+covalent_radii[twogroups.get_atomic_numbers()[j]+1]
+                            if (i, j,limit_distance, 1) not in distance_constraints:
+                                distance_constraints.append((i, j,limit_distance, 2))
+                        else:
+                            if (i,j) in bondsetlist or (j,i) in bondsetlist:
+                                limit_distance = covalent_radii[twogroups.get_atomic_numbers()[i]]+covalent_radii[twogroups.get_atomic_numbers()[j]]-0.5
+                                if (i, j, limit_distance, 0) not in distance_constraints:
+                                    distance_constraints.append((i, j, limit_distance, 0))
+                            else:
+                                limit_distance = covalent_radii[twogroups.get_atomic_numbers()[i]]+covalent_radii[twogroups.get_atomic_numbers()[j]]+0.5
+                                if (i, j, limit_distance, 1) not in distance_constraints:
+                                    distance_constraints.append((i, j, limit_distance, 2))
+
+        self.distance_constraints = distance_constraints
+        opt = MultiDistanceAwareOptimizer(
+                                        atoms=twogroups,
+                                        distance_constraints=distance_constraints,
+                                        force_scale=2,
+                                        logfile=f'{path}MDAO.log',
+                                        trajectory=f'{path}MDAO.traj'
+                                        )
+    
+        # 运行优化
+        print("\n开始MDAO优化")
+        opt.set_stop_condition(check_surface_or_bulk_changed)
+        self.boom = opt.sc
+        mdao_fmax_bool=opt.run(fmax=0.05,steps=500)
+        opt.step()
+        print(f'\nMDAO结束:{mdao_fmax_bool}')
+        print('\n开始BFGS优化')
+        bfgs = BFGS(twogroups, logfile=f'{path}BFGS.log', trajectory=f'{path}BFGS.traj')
+        bfgs_fmax_bool=bfgs.run(fmax=0.01,steps=500)
+        print(f'\nBFGS结束:{bfgs_fmax_bool}')
+        self.OUT2 = twogroups
+        self.opt_check = [bool(mdao_fmax_bool),bool(bfgs_fmax_bool)]
+
     def check_result(self,path):
         if self.opt_check[-1]==True:
             twogroups=copy.deepcopy(self.OUT2)
