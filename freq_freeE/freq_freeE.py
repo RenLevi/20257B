@@ -32,7 +32,7 @@ for name in folderpath:
                 frequencies = vib.get_frequencies()
             if dictTS[k]["NCS_freq"] != None:
                 PN = Path(dictTS[k]["NCS_freq"])
-                atoms = read(PN/'Toptimized_ts.xyz')
+                atoms = read(PN/'optimized_ts.xyz')
                 atoms.calc = calc
                 indices_to_fix = [atom.index for atom in atoms if atom.symbol == 'Ru']
                 constraint = FixAtoms(indices=indices_to_fix)
