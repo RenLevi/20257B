@@ -14,20 +14,9 @@ def batch_process(data, batch_size):
 
 
         yield data[i:i + batch_size]
-i = 0
+i = 1
 fdl = read_file_line_by_line('/public/home/ac877eihwp/renyq/C2/test/RN/reactionslist.txt')
 FLODER = 'RDA_S'
 for batch in batch_process(fdl,11):
-    data = {'INAME':i,
-        'path':'/public/home/ac877eihwp/renyq/C2/test/reactions4RDA_S',
-        'folderpath':batch,
-        'MLPs_model_path':'/public/home/ac877eihwp/renyq/prototypeModel.pth'
-        }
-    os.makedirs(name=f'test/jobsub/{FLODER}/{i}',exist_ok=True)
-    with open(f'test/jobsub/{FLODER}/{i}/config.json','w') as j:
-        json.dump(data,j)
-    sp.copyFiles('SearchTS/RDA_S/RDA_S.py',f'test/jobsub/{FLODER}/{i}')
-    sp.copyFiles('SearchTS/RDA_S/SearchTS.py',f'test/jobsub/{FLODER}/{i}')
-    sp.copyFiles('SearchTS/RDA_S/jobRDA_S.sh',f'test/jobsub/{FLODER}/{i}')
     sp.run_command_in_directory(directory=f'test/jobsub/{FLODER}/{i}',command='qsub jobRDA_S.sh')
     i += 1

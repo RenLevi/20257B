@@ -1228,7 +1228,7 @@ class readreaction():
         print(f'\nBFGS结束:{bfgs_fmax_bool}')
         self.OUT2 = twogroups
         self.opt_check = [bool(mdao_fmax_bool),bool(bfgs_fmax_bool)]
-    def run_MDAO_xsl(self,path):
+    def run_MDAO_NEW(self,path):
         self.path2save = path
         calc = NequIPCalculator.from_deployed_model(self.mlps, device='cpu')
         twogroups=self.OUT2

@@ -21,7 +21,7 @@ for batch in batch_process(fdl,11):
     data = {'INAME':i,
         'folderpath':batch,
         'MLPs_model_path':'/public/home/ac877eihwp/renyq/prototypeModel.pth',
-        'path':'/public/home/ac877eihwp/renyq/C2/test/reactions'
+        'path':'/public/home/ac877eihwp/renyq/C2/test/FQFE'
         }
     os.makedirs(name=f'test/jobsub/{folder}/{i}',exist_ok=True)
     with open(f'test/jobsub/{folder}/{i}/config.json','w') as j:

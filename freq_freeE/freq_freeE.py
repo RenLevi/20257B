@@ -6,16 +6,7 @@ from ase.vibrations import Vibrations
 from ase.constraints import FixAtoms
 import json
 import os
-def get_single_filename(folder_path):
-    """获取文件夹中唯一的文件名"""
-    all_items = os.listdir(folder_path)
-    files = [item for item in all_items if os.path.isfile(os.path.join(folder_path, item))]
-    if len(files) == 1:
-        return files[0]
-    elif len(files) == 0:
-        return "文件夹为空"
-    else:
-        return f"文件夹中有 {len(files)} 个文件，不止一个文件"
+from pathlib import Path
 with open('config.json','r') as j:
     data = json.load(j)
 path = data['path']
@@ -24,30 +15,30 @@ INAME = data['INAME']
 model_path = data['MLPs_model_path']
 calc = NequIPCalculator.from_deployed_model(model_path, device='cpu')
 for name in folderpath:
-    PathName = f'{path}/{name}'
-    with open (f'{path}/{INAME}.json','r') as j:
-        dictrn = json.load(j)
-    rnd = dictrn[name]
-    if rnd['TS searched'] == True:
-        atoms = read(f'{PathName}/optimized_ts.xyz')
-        atoms.calc = calc
-        indices_to_fix = [atom.index for atom in atoms if atom.symbol == 'Ru']
-        constraint = FixAtoms(indices=indices_to_fix)
-        atoms.set_constraint(constraint)
-        vib = Vibrations(atoms, name = f'{PathName}/freq_calculation', delta = 0.01, nfree = 2)
-        vib.run()
-        vib.summary(log=f'{PathName}/frequency_summary.txt')
-        frequencies = vib.get_frequencies()
-        print("\n振动频率 (cm⁻¹):")
-        with open(f'{path}/{INAME}.json','r') as j:
-            dictij = json.load(j)
-        dictij[name]['freq&free Energy'] = True
-        with open(f'{path}/{INAME}.json','w') as j:
-            json.dump(dictij,j)
-    else:
-        with open(f'{path}/{INAME}.json','r') as j:
-            dictij = json.load(j)
-        dictij[name]['freq&free Energy'] = False
-        with open(f'{path}/{INAME}.json','w') as j:
-            json.dump(dictij,j)
+    with open (f'{path}/TS.json','r') as j:
+        dictTS = json.load(j)
+    for k in dictTS:
+        if dictTS[k]["Reaction"]==name:
+            if dictTS[k]["RDAS_freq"] != None:
+                PN = Path(dictTS[k]["RDAS_freq"])
+                atoms = read(PN/'TS.xyz')
+                atoms.calc = calc
+                indices_to_fix = [atom.index for atom in atoms if atom.symbol == 'Ru']
+                constraint = FixAtoms(indices=indices_to_fix)
+                atoms.set_constraint(constraint)
+                vib = Vibrations(atoms, name = f'{PN}/freq_calculation', delta = 0.01, nfree = 2)
+                vib.run()
+                vib.summary(log=f'{PN}/frequency_summary.txt')
+                frequencies = vib.get_frequencies()
+            if dictTS[k]["NCS_freq"] != None:
+                PN = Path(dictTS[k]["NCS_freq"])
+                atoms = read(PN/'Toptimized_ts.xyz')
+                atoms.calc = calc
+                indices_to_fix = [atom.index for atom in atoms if atom.symbol == 'Ru']
+                constraint = FixAtoms(indices=indices_to_fix)
+                atoms.set_constraint(constraint)
+                vib = Vibrations(atoms, name = f'{PN}/freq_calculation', delta = 0.01, nfree = 2)
+                vib.run()
+                vib.summary(log=f'{PN}/frequency_summary.txt')
+                frequencies = vib.get_frequencies()
 

@@ -10,14 +10,7 @@ from sella import Sella
 from nequip.ase import NequIPCalculator
 from ase.mep import NEB
 from ase.vibrations import Vibrations
-
-def freq_cal(atoms,p):
-    vib = Vibrations(atoms, name = f'{p}/freq_calculation', delta = 0.01, nfree = 2)
-    vib.run()
-    vib.summary(log=f'{p}/frequency_summary.txt')
-    frequencies = vib.get_freqsuencies()
-    #print("\n振动频率 (cm⁻¹):")
-    return frequencies
+import shutil
 def get_single_filename(folder_path):
     """获取文件夹中唯一的文件名"""
     all_items = os.listdir(folder_path)
@@ -77,10 +70,6 @@ def interpolate_structure_from_idpp(
                                     initial_file, final_file, 
                                     n_images=3, 
                                     fraction=0.5,
-                                    fmax=0.1, 
-                                    optimizer=BFGS, 
-                                    steps=200, 
-                                    k=5,
                                     output_file=None):
     """
     使用 ASE 的 IDPP 方法在初始结构和最终结构之间插值生成中间结构。
@@ -111,10 +100,9 @@ def interpolate_structure_from_idpp(
     images += [initial.copy() for i in range(n_images - 2)]
     images += [final]
     # 3. 创建 NEB 对象
-    neb = NEB(images, k=k)
-    # 4. 执行 IDPP 插值
-    neb.idpp_interpolate(fmax=fmax, optimizer=optimizer, steps=steps)
-    interpolate_structure = images[int((n_images-1)*fraction)]  # 获取第一个中间副本作为插值结果
+    neb = NEB(images, climb=False)   # 这里不需要爬坡，只做路径生成
+    neb.interpolate(method='idpp')
+    interpolate_structure = images[int((n_images-1)*fraction)]  
     if output_file:
         write(output_file, interpolate_structure)
         print(f"{fraction*100}% 结构已保存到: {output_file}")
@@ -145,19 +133,29 @@ def optimize_with_energy_criterion(model, calculator, energy_threshold=1e-2,
     atoms.calc = calculator
     optimizer = FIRE(atoms=atoms,trajectory=trajectory_file,logfile=log_file)
     energy_history = []
+    def warp(step):
+        if step < 10:
+            return str(step)+'  '
+        elif step>=10 and step <100:
+            return str(step)+' '
+        else:return str(step)
     for step in range(max_steps):
         # 获取当前能量
         current_energy = atoms.get_potential_energy()
         energy_history.append(current_energy)
-        print(f"步骤 {step}: 能量 = {current_energy:.6f} eV")
+        print_out = f"Step {warp(step)}: Energy = {current_energy:.6f} eV"
+        #print(f"步骤 {step}: 能量 = {current_energy:.6f} eV")
         # 检查能量收敛
         if len(energy_history) > 1:
             energy_diff = abs(energy_history[-1] - energy_history[-2])
-            print(f"  能量变化: {energy_diff:.6f} eV")
+            print_out += f"  Energy change: {energy_diff:.6f} eV"
+            print(print_out)
+            #print(f"  能量变化: {energy_diff:.6f} eV")
             if energy_diff < energy_threshold:
-                print(f"\n能量收敛于步骤 {step}!")
-                print(f"最终能量变化: {energy_diff:.6f} eV < 阈值 {energy_threshold} eV")
+                #print(f"\n能量收敛于步骤 {step}!")
+                #print(f"最终能量变化: {energy_diff:.6f} eV < 阈值 {energy_threshold} eV")
                 break
+        else:print(print_out)
         # 执行一步优化
         try:
             optimizer.step()
@@ -262,7 +260,23 @@ class RDA_S():
             os.mkdir(f'{self.path}/IntermediateProcess/step2')
             os.mkdir(f'{self.path}/IntermediateProcess/step3')
             os.mkdir(f'{self.path}/IntermediateProcess/results')
-            os.mkdir(f'{self.path}/IntermediateProcess/optimized_IS_FS')    
+            os.mkdir(f'{self.path}/IntermediateProcess/optimized_IS_FS')  
+        else:
+            def _del_folder(fp):
+                folder_path = fp
+                try:
+                    shutil.rmtree(folder_path)
+                    print(f"已删除文件夹及其所有内容: {folder_path}")
+                except FileNotFoundError:
+                    print("文件夹不存在")
+                except PermissionError:
+                    print("权限不足，无法删除")
+                except OSError as e:
+                    print(f"删除失败: {e}")  
+            fl = ['step1','step2','step3','results']
+            for fn in fl:
+                _del_folder(f'{self.path}/IntermediateProcess/{fn}')
+                os.mkdir(f'{self.path}/IntermediateProcess/{fn}')
     def skip_opt(self):
         self.optIS = self.IS
         self.optFS = self.FS
@@ -296,7 +310,7 @@ class RDA_S():
             self.optIS = atoms1
             self.optFS = atoms2
             return atoms1, atoms2
-    def run(self, mlp_path,fix_indices=list(range(32))):
+    def run_idpp(self, mlp_path,fix_indices=list(range(32))):
         # 线性插值生成中间结构
         RIS = self.optIS
         RFS = self.optFS
@@ -310,8 +324,9 @@ class RDA_S():
         R1Copt, _ = optimize_with_energy_criterion(R1, calc, 
                                                     energy_threshold=0.01, 
                                                     max_steps=200, 
-                                                    trajectory_file=f'{path_IP}step1/R1Copt.traj',
-                                                    log_file=f'{path_IP}step1/R1Copt.log')
+                                                    #trajectory_file= f'{path_IP}step1/R1Copt.traj',
+                                                    #log_file=  f'{path_IP}step1/R1Copt.log'
+                                                    )
         sigma_R1,diff_IS,diff_FS = directionality_sigma([RIS,RFS],[R1Copt,R1])
         write(f'{path_IP}step1/R1Copt.xyz', R1Copt)
         print(f"R1Copt的diff_IS: {diff_IS}; diff_FS: {diff_FS}")
@@ -319,10 +334,20 @@ class RDA_S():
             print("R1Copt满足D_criteria")
             print('Start Sella')
             QTS = copy.deepcopy(R1Copt)
+            QTS.calc = calc
             Sella_Search = Sella(QTS, 
-                                 logfile=f'{path_IP}step1/R1Copt_sella.log', 
-                                 trajectory=f'{path_IP}step1/R1Copt_sella.traj')
-            Sella_Search.run(fmax=0.05)
+                                 logfile=f'{path_IP}results/R1Copt_sella.log', 
+                                 trajectory=f'{path_IP}results/R1Copt_sella.traj',
+                                 delta0=0.1,          # 更小的初始步长，谨慎起步
+                                 #rho_inc=1.1,            # 提高放大阈值，更难放大步长
+                                 #sigma_inc=1.05,         # 降低放大倍数，放也要小步放
+                                 #rho_dec=3.0,            # 降低“不准”的阈值，对误差更敏感
+                                 #sigma_dec=0.5,          # 加大缩减力度，出错时缩得更狠
+                                 )
+            for i, geom in enumerate(Sella_Search.irun(fmax=0.05)):
+                _, fmax, cmax = Sella_Search.pes.converged(Sella_Search.fmax)
+                if fmax < 0.1 and Sella_Search.delta > 5e-3:
+                    Sella_Search.delta = 5e-3
             write(f'{path_IP}results/TS.xyz', QTS)
             print("过渡态搜索完成,结果保存在TS.xyz")
             return QTS
@@ -343,8 +368,9 @@ class RDA_S():
             R2Copt, _ = optimize_with_energy_criterion(R2, calc, 
                                                         energy_threshold=0.05,
                                                         max_steps=200,
-                                                        trajectory_file=f'{path_IP}step2/R2_50_Copt.traj',
-                                                        log_file=f'{path_IP}step2/R2_50_Copt.log')
+                                                        #trajectory_file= f'{path_IP}step2/R2_50_Copt.traj',
+                                                        #log_file=  f'{path_IP}step2/R2_50_Copt.log'
+                                                        )
             write(f'{path_IP}step2/R2_50_Copt.xyz', R2Copt)
             sigma_R2,diff_IS_R2,diff_FS_R2 = directionality_sigma([R1Copt,Rref],[R2Copt,R2],Determination=['alpha','ref','Nondirectional'])
             print(f"R2Copt的diff_IS: {diff_IS_R2}; diff_FS: {diff_FS_R2}")
@@ -360,8 +386,9 @@ class RDA_S():
                     RiCopt, _ = optimize_with_energy_criterion(Ri, calc, 
                                                                 energy_threshold=0.05,
                                                                 max_steps=200,
-                                                                trajectory_file=f'{path_IP}/step2/R2_{int(beta*100)}_Copt.traj',
-                                                                log_file=f'{path_IP}/step2/R2_{int(beta*100)}_Copt.log')
+                                                                #trajectory_file= f'{path_IP}/step2/R2_{int(beta*100)}_Copt.traj',
+                                                                #log_file=  f'{path_IP}/step2/R2_{int(beta*100)}_Copt.log'
+                                                                )
                     write(f'{path_IP}/step2/R2_{int(beta*100)}_Copt.xyz', RiCopt)
                     sigma_Ri,diff_IS_Ri,diff_FS_Ri = directionality_sigma([R1Copt,Rref],[RiCopt,Ri],Determination=['alpha','ref','Nondirectional'])
                     print(f"RiCopt的diff_IS: {diff_IS_Ri}; diff_FS: {diff_FS_Ri}, sigma_Ri: {sigma_Ri}")
@@ -372,15 +399,16 @@ class RDA_S():
             elif sigma_R2 == 'alpha':
                 sigma_Ri = copy.deepcopy(sigma_R2)
                 BETAlist.append(beta)
-                while sigma_Ri == 'alpha' or sigma_Ri == 'Nondirectional':
+                while sigma_Ri == 'alpha'or sigma_Ri == 'Nondirectional':
                     beta = beta + 0.1
                     Ri,_ = interpolate_structure_from_idpp(initial_file=R1Copt,final_file=Rref,n_images=11,fraction=beta,output_file=f'{path_IP}/step2/R2_{int(beta*100)}.vasp')
                     print(f"当前beta: {beta}")
                     RiCopt, _ = optimize_with_energy_criterion(Ri, calc, 
                                                                 energy_threshold=0.05,
                                                                 max_steps=100,
-                                                                trajectory_file=f'{path_IP}/step2/R2_{int(beta*100)}_Copt.traj',
-                                                                log_file=f'{path_IP}/step2/R2_{int(beta*100)}_Copt.log')
+                                                                #trajectory_file= f'{path_IP}/step2/R2_{int(beta*100)}_Copt.traj',
+                                                                #log_file=  f'{path_IP}/step2/R2_{int(beta*100)}_Copt.log'
+                                                                )
                     write(f'{path_IP}/step2/R2_{int(beta*100)}_Copt.xyz', RiCopt)
                     sigma_Ri,diff_IS_Ri,diff_FS_Ri = directionality_sigma([R1Copt,Rref],[RiCopt,Ri],Determination=['alpha','ref','Nondirectional'])
                     print(f"RiCopt的diff_IS: {diff_IS_Ri}; diff_FS: {diff_FS_Ri}, sigma_Ri: {sigma_Ri}")
@@ -392,10 +420,20 @@ class RDA_S():
                 print("R2Copt满足D_criteria")
                 print('Start Sella')
                 QTS = copy.deepcopy(R2Copt)
+                QTS.calc = calc
                 Sella_Search = Sella(QTS, 
-                                    logfile=f'{path_IP}step2/R2Copt_sella.log', 
-                                    trajectory=f'{path_IP}step2/R2Copt_sella.traj')
-                Sella_Search.run(fmax=0.05)
+                                    logfile=f'{path_IP}results/R2Copt_sella.log', 
+                                    trajectory=f'{path_IP}results/R2Copt_sella.traj',
+                                    delta0=0.1,          # 更小的初始步长，谨慎起步
+                                    #rho_inc=1.1,            # 提高放大阈值，更难放大步长
+                                    #sigma_inc=1.05,         # 降低放大倍数，放也要小步放
+                                    #rho_dec=3.0,            # 降低“不准”的阈值，对误差更敏感
+                                    #sigma_dec=0.5,          # 加大缩减力度，出错时缩得更狠
+                                    )
+                for i, geom in enumerate(Sella_Search.irun(fmax=0.05)):
+                    _, fmax, cmax = Sella_Search.pes.converged(Sella_Search.fmax)
+                    if fmax < 0.1 and Sella_Search.delta > 5e-3:
+                        Sella_Search.delta = 5e-3
                 write(f'{path_IP}results/TS.xyz', QTS)
                 print("过渡态搜索完成,结果保存在TS.xyz")
                 return QTS
@@ -406,8 +444,9 @@ class RDA_S():
             RdncCopt, _ = optimize_with_energy_criterion(Rdnc, calc, 
                                                             energy_threshold=0.05,
                                                             max_steps=100,
-                                                            trajectory_file=f'{path_IP}step3/RdncCopt.traj',
-                                                            log_file=f'{path_IP}step3/RdncCopt.log')
+                                                            #trajectory_file= f'{path_IP}step3/RdncCopt.traj',
+                                                            #log_file=  f'{path_IP}step3/RdncCopt.log'
+                                                            )
             write(f'{path_IP}step3/RdncCopt.xyz',RdncCopt)        
             if sigma_R1 == 'IS':
                 print("将RIS作为Rref")
@@ -429,28 +468,25 @@ class RDA_S():
             write(f'{path_IP}step3/R3final.vasp', Rgamma)
             print("过渡态搜索开始")
             QTS = copy.deepcopy(Rgamma)
+            QTS.calc = calc
             Sella_Search = Sella(QTS, 
-                                 logfile=f'{path_IP}step3/R3_sella.log', 
-                                 trajectory=f'{path_IP}step3/R3_sella.traj')
-            Sella_Search.run(fmax=0.05)
+                                 logfile=f'{path_IP}results/R3_sella.log', 
+                                 trajectory=f'{path_IP}results/R3_sella.traj',
+                                 delta0=0.1,          # 更小的初始步长，谨慎起步
+                                 #rho_inc=1.1,            # 提高放大阈值，更难放大步长
+                                 #sigma_inc=1.05,         # 降低放大倍数，放也要小步放
+                                 #rho_dec=3.0,            # 降低“不准”的阈值，对误差更敏感
+                                 #sigma_dec=0.5,          # 加大缩减力度，出错时缩得更狠
+                                 )
+            for i, geom in enumerate(Sella_Search.irun(fmax=0.05)):
+                _, fmax, cmax = Sella_Search.pes.converged(Sella_Search.fmax)
+                if fmax < 0.1 and Sella_Search.delta > 5e-3:
+                    Sella_Search.delta = 5e-3
             write(f'{path_IP}results/TS.xyz', QTS)
             print("过渡态搜索完成,结果保存在TS.xyz")
             return QTS
-
-
-
-
-
-            
-
-
-            
-            
-            
-                
-
-
-        
-    
-
-    
+    def control_rtrust_by_fmax(opt,control_delta=5e-3):
+        for i, geom in enumerate(opt.irun(fmax=0.05)):
+                _, fmax, cmax = opt.pes.converged(opt.fmax)
+                if fmax < 0.1 and opt.delta > control_delta:
+                    opt.delta = control_delta

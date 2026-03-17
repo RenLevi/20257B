@@ -26,7 +26,7 @@ for batch in batch_process(fdl,11):
     os.makedirs(name=f'test/jobsub/{folder}/{i}',exist_ok=True)
     with open(f'test/jobsub/{folder}/{i}/config.json','w') as j:
         json.dump(data,j)
-    sp.copyFiles('SearchTS/NEB_Combine_Sella.py',f'test/jobsub/{folder}/{i}')
-    sp.copyFiles('SearchTS/jobNCS.sh',f'test/jobsub/{folder}/{i}')
+    sp.copyFiles('NEB/NEB_Combine_Sella.py',f'test/jobsub/{folder}/{i}')
+    sp.copyFiles('NEB/jobNCS.sh',f'test/jobsub/{folder}/{i}')
     sp.run_command_in_directory(directory=f'test/jobsub/{folder}/{i}',command='qsub jobNCS.sh')
     i += 1
